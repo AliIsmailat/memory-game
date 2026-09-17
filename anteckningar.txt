@@ -1,0 +1,2 @@
+lägg till distance i constellation i pixlar
+där man jämför användarens försök med og bilden
