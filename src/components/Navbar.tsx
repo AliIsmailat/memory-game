@@ -1,4 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import { SunIcon, MoonIcon, StarIcon, CloudIcon } from "./icons";
 import type { GameMode } from "../types";
 
 interface NavbarProps {
@@ -17,26 +17,59 @@ function ThemeToggle({
   theme: "light" | "dark";
   onToggle: () => void;
 }) {
-  const sunY = theme === "dark" ? 120 : 0;
-  const moonY = theme === "dark" ? 0 : 120;
+  const isDark = theme === "dark";
 
   return (
     <button
       onClick={onToggle}
       aria-label="Toggle theme"
-      className="nav-btn relative w-9 h-9 rounded-md border border-border overflow-hidden"
+      className="relative w-16 h-8 rounded-full overflow-hidden transition-colors duration-300"
+      style={{
+        background: isDark
+          ? "linear-gradient(90deg, var(--color-stage-deep), var(--color-stage))"
+          : "linear-gradient(90deg, color-mix(in srgb, var(--color-amber) 35%, var(--color-panel)), color-mix(in srgb, var(--color-amber) 15%, var(--color-panel)))",
+      }}
     >
+      {isDark && (
+        <>
+          <span className="absolute" style={{ top: "6px", left: "8px" }}>
+            <StarIcon size={17} color="rgba(255,255,255,0.75)" />
+          </span>
+        </>
+      )}
+
+      {!isDark && (
+        <>
+          <span className="absolute" style={{ top: "5px", left: "32px" }}>
+            <CloudIcon
+              size={13}
+              color="color-mix(in srgb, var(--color-panel) 90%, white)"
+            />
+          </span>
+          <span className="absolute" style={{ top: "13px", left: "43px" }}>
+            <CloudIcon
+              size={11}
+              color="color-mix(in srgb, var(--color-panel) 90%, white)"
+            />
+          </span>
+        </>
+      )}
+
       <span
-        className="absolute inset-0 flex items-center justify-center text-lg transition-transform duration-300 ease-in"
-        style={{ transform: `translateY(${sunY}%)` }}
+        className="absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center transition-transform duration-300 ease-in-out"
+        style={{
+          background: isDark ? "var(--color-panel)" : "var(--color-panel)",
+          transform: isDark ? "translateX(32px)" : "translateX(0)",
+          boxShadow: isDark
+            ? "0 0 10px 2px color-mix(in srgb, var(--color-text) 30%, transparent)"
+            : "0 0 10px 2px color-mix(in srgb, var(--color-amber) 50%, transparent)",
+        }}
       >
-        ☀️
-      </span>
-      <span
-        className="absolute inset-0 flex items-center justify-center text-lg transition-transform duration-300 ease-in"
-        style={{ transform: `translateY(${moonY}%)` }}
-      >
-        🌙
+        {isDark ? (
+          <MoonIcon size={16} color="#D7DBE8" />
+        ) : (
+          <SunIcon size={16} color="var(--color-amber)" />
+        )}
       </span>
     </button>
   );

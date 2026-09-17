@@ -70,7 +70,7 @@ export function GameRunner<TRound extends Round, TGuess>({
         </div>
       )}
 
-      <div className="w-full max-w-135">
+      <div className="w-full max-w-145">
         {phase === "idle" && (
           <div className="relative">
             {mode.renderIdle ? (
