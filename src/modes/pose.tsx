@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useRef, useState } from "react";
 import type { GameMode, Round } from "../types";
-import { RecDot, TimerBar } from "./shared";
 
 interface PoseAngles {
   rS: number;
@@ -204,8 +203,6 @@ function PosePreview({ round }: { round: PoseRound }) {
       <svg viewBox="0 0 300 400" className="absolute inset-0 w-full h-full">
         <Figure pose={round.pose} stroke="#E2A63B" />
       </svg>
-      <RecDot />
-      <TimerBar durationMs={2800} />
     </div>
   );
 }
@@ -214,9 +211,13 @@ type HandleId = "rElbow" | "rHand" | "lElbow" | "lHand" | "rFoot" | "lFoot";
 
 function PoseGuessInput({
   onSubmit,
+  onRestart,
+  confirmingRestart,
 }: {
   round: PoseRound;
   onSubmit: (guess: PoseGuess) => void;
+  onRestart: () => void;
+  confirmingRestart: boolean;
 }) {
   const [guess, setGuess] = useState<PoseAngles>(NEUTRAL);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -281,39 +282,53 @@ function PoseGuessInput({
   ];
 
   return (
-    <div>
-      <div ref={wrapRef} className="canvas-wrap touch-none">
-        <svg
-          viewBox="0 0 300 400"
-          className="absolute inset-0 w-full h-full"
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        >
-          <Figure pose={guess} stroke="#EDEDEC" strokeWidth={8} />
-          {handles.map((h) => (
-            <circle
-              key={h.id}
-              cx={h.p[0]}
-              cy={h.p[1]}
-              r={12}
-              fill="#E2A63B"
-              fillOpacity={0.9}
-              className="cursor-grab active:cursor-grabbing"
-              onPointerDown={handlePointerDown(h.id)}
-            />
-          ))}
-        </svg>
-      </div>
-      <p className="text-center text-muted text-sm mt-3">
-        Drag the joints to rebuild the pose.
-      </p>
-      <div className="flex gap-2.5 justify-center mt-4">
-        <button
-          className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4.5 py-2.5"
-          onClick={() => onSubmit(guess)}
-        >
-          Lock in pose
-        </button>
+    <div ref={wrapRef} className="canvas-wrap touch-none">
+      <svg
+        viewBox="0 0 300 400"
+        className="absolute inset-0 w-full h-full"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <Figure pose={guess} stroke="#EDEDEC" strokeWidth={8} />
+        {handles.map((h) => (
+          <circle
+            key={h.id}
+            cx={h.p[0]}
+            cy={h.p[1]}
+            r={12}
+            fill="#E2A63B"
+            fillOpacity={0.9}
+            className="cursor-grab active:cursor-grabbing"
+            onPointerDown={handlePointerDown(h.id)}
+          />
+        ))}
+      </svg>
+
+      <div
+        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <span className="text-white text-xs font-mono select-none pointer-events-none">
+          Drag the joints
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={onRestart}
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+              confirmingRestart
+                ? "bg-rec text-white"
+                : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"
+            }`}
+          >
+            {confirmingRestart ? "You sure?" : "Restart"}
+          </button>
+          <button
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:brightness-110 active:scale-95"
+            onClick={() => onSubmit(guess)}
+          >
+            Lock in
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -345,7 +360,7 @@ function computePoseScore(target: PoseAngles, guess: PoseAngles) {
     angDiff(guess.lH, target.lH),
   ];
   const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-  return Math.round(Math.max(0, 100 * (1 - avg / 75)));
+  return Math.max(0, 100 * (1 - avg / 75));
 }
 
 export const poseMode: GameMode<PoseRound, PoseGuess> = {
@@ -354,11 +369,16 @@ export const poseMode: GameMode<PoseRound, PoseGuess> = {
   description:
     "A figure holds a pose for a moment. Rebuild it, joint by joint.",
   rounds: ROUNDS,
-  previewDurationMs: 2900,
+  previewDurationMs: 5000,
   renderIdle: () => <PoseIdle />,
   renderPreview: (round) => <PosePreview round={round} />,
-  renderGuessInput: (round, onSubmit) => (
-    <PoseGuessInput round={round} onSubmit={onSubmit} />
+  renderGuessInput: (round, onSubmit, onRestart, confirmingRestart) => (
+    <PoseGuessInput
+      round={round}
+      onSubmit={onSubmit}
+      onRestart={onRestart}
+      confirmingRestart={confirmingRestart}
+    />
   ),
   renderResult: (round, guess) => <PoseResult round={round} guess={guess} />,
   computeScore: (round, guess) => computePoseScore(round.pose, guess),

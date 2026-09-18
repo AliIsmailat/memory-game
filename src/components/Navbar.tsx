@@ -40,15 +40,15 @@ function ThemeToggle({
 
       {!isDark && (
         <>
-          <span className="absolute" style={{ top: "5px", left: "32px" }}>
+          <span className="absolute" style={{ top: "5px", left: "35px" }}>
             <CloudIcon
               size={13}
               color="color-mix(in srgb, var(--color-panel) 90%, white)"
             />
           </span>
-          <span className="absolute" style={{ top: "13px", left: "43px" }}>
+          <span className="absolute" style={{ top: "13px", left: "47px" }}>
             <CloudIcon
-              size={11}
+              size={9}
               color="color-mix(in srgb, var(--color-panel) 90%, white)"
             />
           </span>
@@ -96,11 +96,7 @@ export function Navbar({
           <button
             key={m.id}
             onClick={() => onSelectMode(m.id)}
-            className={
-              m.id === activeModeId
-                ? "nav-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4 py-2"
-                : "nav-btn bg-transparent text-muted border border-border text-sm font-semibold rounded-md px-4 py-2 transition-colors hover:text-text hover:border-amber"
-            }
+            className={`nav-link ${m.id === activeModeId ? "active" : ""}`}
           >
             {m.name}
           </button>

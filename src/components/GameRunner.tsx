@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameMode, Round } from "../types";
-import { Countdown } from "../modes/shared";
+import { Countdown, TimerDisplay, TimerBar, CountUp } from "../modes/shared";
+import { PlayIcon } from "./icons";
 
 type Phase = "idle" | "countdown" | "preview" | "guess" | "result" | "final";
 
@@ -16,6 +17,8 @@ export function GameRunner<TRound extends Round, TGuess>({
   const [scores, setScores] = useState<number[]>([]);
   const [lastScore, setLastScore] = useState(0);
   const [lastGuess, setLastGuess] = useState<TGuess | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [confirmingRestart, setConfirmingRestart] = useState(false);
 
   const round = mode.rounds[roundIndex];
   const previewMs = mode.previewDurationMs ?? 3000;
@@ -26,8 +29,22 @@ export function GameRunner<TRound extends Round, TGuess>({
     return () => clearTimeout(timer);
   }, [phase, roundIndex, previewMs]);
 
+  function handleRestartClick() {
+    if (confirmingRestart) {
+      handleRestart();
+      setConfirmingRestart(false);
+    } else {
+      setConfirmingRestart(true);
+      setTimeout(() => setConfirmingRestart(false), 2500);
+    }
+  }
+
   function handlePlay() {
-    setPhase("countdown");
+    setIsLaunching(true);
+    setTimeout(() => {
+      setIsLaunching(false);
+      setPhase("countdown");
+    }, 600);
   }
 
   function handleSubmit(guess: TGuess) {
@@ -54,22 +71,10 @@ export function GameRunner<TRound extends Round, TGuess>({
   }
 
   const total = scores.reduce((a, b) => a + b, 0);
-  const average = scores.length ? Math.round(total / scores.length) : 0;
+  const average = scores.length ? total / scores.length : 0;
 
   return (
     <div className="flex flex-col items-center px-4 pt-7 pb-15">
-      {phase !== "idle" && phase !== "final" && (
-        <div className="flex gap-4 items-center mb-4.5 font-mono text-sm text-muted">
-          <span>
-            ROUND <b className="text-text">{roundIndex + 1}</b>/
-            {mode.rounds.length}
-          </span>
-          <span>
-            SCORE <b className="text-text">{total}</b>
-          </span>
-        </div>
-      )}
-
       <div className="w-full max-w-145">
         {phase === "idle" && (
           <div className="relative">
@@ -89,54 +94,102 @@ export function GameRunner<TRound extends Round, TGuess>({
             <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-6">
               <button
                 onClick={handlePlay}
-                className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-6 py-3 shadow-lg"
+                disabled={isLaunching}
+                className={`play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer flex items-center justify-between gap-4 min-w-25 ${isLaunching ? "firing" : ""}`}
               >
                 Play
+                <PlayIcon size={14} color="#1B1500" />
               </button>
             </div>
           </div>
         )}
 
         {phase === "countdown" && (
-          <Countdown seconds={5} onComplete={() => setPhase("preview")} />
+          <Countdown onComplete={() => setPhase("preview")} />
         )}
 
-        {phase === "preview" && <div>{mode.renderPreview(round)}</div>}
-
-        {phase === "guess" && (
-          <div>{mode.renderGuessInput(round, handleSubmit)}</div>
-        )}
-
-        {phase === "result" && (
-          <div className="text-center">
-            {mode.renderResult && lastGuess !== null && (
-              <div className="mb-4">
-                {mode.renderResult(round, lastGuess, lastScore)}
+        {(phase === "preview" || phase === "guess" || phase === "result") && (
+          <div className="relative">
+            {phase === "preview" && (
+              <div className="relative">
+                {mode.renderPreview(round)}
+                <TimerBar durationMs={previewMs} />
+                <TimerDisplay durationMs={previewMs} />
               </div>
             )}
-            <div className="font-mono text-2xl text-amber">{lastScore}</div>
-            <p className="text-muted text-sm mb-4">points out of 100</p>
-            <button
-              onClick={handleNext}
-              className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4.5 py-2.5"
-            >
-              {roundIndex + 1 >= mode.rounds.length
-                ? "See results"
-                : "Next round"}
-            </button>
+
+            {phase === "guess" && (
+              <div>
+                {mode.renderGuessInput(
+                  round,
+                  handleSubmit,
+                  handleRestartClick,
+                  confirmingRestart,
+                )}
+              </div>
+            )}
+
+            {phase === "result" && (
+              <div>
+                {mode.renderResult &&
+                  lastGuess !== null &&
+                  mode.renderResult(round, lastGuess, lastScore)}
+                <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-3 p-4 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg">
+                  <div className="font-mono text-white leading-none select-none pointer-events-none">
+                    <span className="text-3xl font-bold">
+                      <CountUp target={lastScore} decimals={2} />
+                    </span>{" "}
+                    <span className="text-xs text-white/70 ml-1">/100</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleRestartClick}
+                      className={`font-mono text-xs rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+                        confirmingRestart
+                          ? "bg-rec text-white"
+                          : "bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                      }`}
+                    >
+                      {confirmingRestart ? "You sure?" : "Restart"}
+                    </button>
+                    <button
+                      onClick={handleNext}
+                      className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-5 py-2.5 shadow-lg hover:cursor-pointer"
+                    >
+                      {roundIndex + 1 >= mode.rounds.length
+                        ? "See results"
+                        : "Next round"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="absolute top-3 left-3 font-mono text-sm font-light text-white drop-shadow-md pointer-events-none">
+              {roundIndex + 1}/{mode.rounds.length}
+            </div>
           </div>
         )}
 
         {phase === "final" && (
-          <div className="text-center">
-            <div className="font-mono text-4xl text-amber">{average}</div>
-            <p className="text-muted text-sm mb-4">average score out of 100</p>
-            <button
-              onClick={handleRestart}
-              className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4.5 py-2.5"
-            >
-              Play again
-            </button>
+          <div className="relative">
+            {mode.renderIdle ? (
+              mode.renderIdle()
+            ) : (
+              <div className="canvas-wrap" />
+            )}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 rounded-lg">
+              <div className="font-mono text-4xl font-bold text-amber">
+                <CountUp target={average} suffix="/100" decimals={2} />
+              </div>
+              <p className="text-white/80 text-sm">average score out of 100</p>
+              <button
+                onClick={handleRestart}
+                className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer mt-2"
+              >
+                Play again
+              </button>
+            </div>
           </div>
         )}
       </div>

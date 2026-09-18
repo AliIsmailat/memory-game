@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState } from "react";
 import type { GameMode, Round } from "../types";
-import { GridDots, TimerBar, RecDot } from "./shared";
+import { GridDots } from "./shared";
 
 export interface ConstellationRound extends Round {
   points: [number, number][];
@@ -52,23 +52,6 @@ const ROUNDS: ConstellationRound[] = [
   },
 ];
 
-function ConstellationPreview({ round }: { round: ConstellationRound }) {
-  return (
-    <div className="canvas-wrap">
-      <GridDots />
-      {round.points.map((p, i) => (
-        <div
-          key={i}
-          className="target-dot"
-          style={{ left: `${p[0] * 100}%`, top: `${p[1] * 100}%` }}
-        />
-      ))}
-      <RecDot />
-      <TimerBar durationMs={2800} />
-    </div>
-  );
-}
-
 function ConstellationIdle() {
   const [stars] = useState(() =>
     Array.from({ length: 18 }, () => ({
@@ -101,11 +84,31 @@ function ConstellationIdle() {
     </div>
   );
 }
+
+function ConstellationPreview({ round }: { round: ConstellationRound }) {
+  return (
+    <div className="canvas-wrap">
+      <GridDots />
+      {round.points.map((p, i) => (
+        <div
+          key={i}
+          className="target-dot"
+          style={{ left: `${p[0] * 100}%`, top: `${p[1] * 100}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function ConstellationGuessInput({
   onSubmit,
+  onRestart,
+  confirmingRestart,
 }: {
   round: ConstellationRound;
   onSubmit: (guess: ConstellationGuess) => void;
+  onRestart: () => void;
+  confirmingRestart: boolean;
 }) {
   const [guesses, setGuesses] = useState<ConstellationGuess>([]);
 
@@ -122,36 +125,50 @@ function ConstellationGuessInput({
   }
 
   return (
-    <div>
-      <div className="canvas-wrap" onClick={handleClick}>
-        <GridDots />
-        {guesses.map((p, i) => (
-          <div
-            key={i}
-            className="guess-dot"
-            style={{ left: `${p[0] * 100}%`, top: `${p[1] * 100}%` }}
+    <div className="canvas-wrap" onClick={handleClick}>
+      <GridDots />
+      {guesses.map((p, i) => (
+        <div
+          key={i}
+          className="guess-dot"
+          style={{ left: `${p[0] * 100}%`, top: `${p[1] * 100}%` }}
+        >
+          {i + 1}
+        </div>
+      ))}
+
+      <div
+        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="text-white text-xs font-mono select-none pointer-events-none">
+          {guesses.length}/5 placed
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={onRestart}
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+              confirmingRestart
+                ? "bg-rec text-white"
+                : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"
+            }`}
           >
-            {i + 1}
-          </div>
-        ))}
-      </div>
-      <p className="text-center text-muted text-sm mt-3">
-        {guesses.length}/5 placed. Click in the box.
-      </p>
-      <div className="flex gap-2.5 justify-center mt-4">
-        <button
-          className="bg-transparent text-text border border-border text-sm font-semibold rounded-md px-4.5 py-2.5"
-          onClick={handleUndo}
-        >
-          Undo last
-        </button>
-        <button
-          className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4.5 py-2.5 disabled:opacity-40"
-          disabled={guesses.length !== 5}
-          onClick={() => onSubmit(guesses)}
-        >
-          Lock in guess
-        </button>
+            {confirmingRestart ? "You sure?" : "Restart"}
+          </button>
+          <button
+            className="bg-white/10 text-white border border-white/20 text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:bg-white/20 active:scale-95"
+            onClick={handleUndo}
+          >
+            Undo
+          </button>
+          <button
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition hover:brightness-110 active:scale-95"
+            disabled={guesses.length !== 5}
+            onClick={() => onSubmit(guesses)}
+          >
+            Lock in
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -233,7 +250,7 @@ function ConstellationResult({
 function scoreFromPairs(pairs: ReturnType<typeof matchPairs>) {
   const avg = pairs.reduce((s, p) => s + p.d, 0) / pairs.length;
   const diag = Math.hypot(1, 1);
-  return Math.round(Math.max(0, 100 * (1 - avg / (diag * 0.35))));
+  return Math.max(0, 100 * (1 - avg / (diag * 0.35)));
 }
 
 export const constellationMode: GameMode<
@@ -247,8 +264,13 @@ export const constellationMode: GameMode<
   previewDurationMs: 2900,
   renderIdle: () => <ConstellationIdle />,
   renderPreview: (round) => <ConstellationPreview round={round} />,
-  renderGuessInput: (round, onSubmit) => (
-    <ConstellationGuessInput round={round} onSubmit={onSubmit} />
+  renderGuessInput: (round, onSubmit, onRestart, confirmingRestart) => (
+    <ConstellationGuessInput
+      round={round}
+      onSubmit={onSubmit}
+      onRestart={onRestart}
+      confirmingRestart={confirmingRestart}
+    />
   ),
   renderResult: (round, guess) => (
     <ConstellationResult round={round} guess={guess} />

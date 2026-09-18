@@ -226,3 +226,29 @@ export function StarIcon({
     </svg>
   );
 }
+
+export function PlayIcon({
+  size = 24,
+  color = "currentColor",
+  className = "",
+}: {
+  size?: number;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="-3 0 28 28"
+      fill="none"
+      className={className}
+    >
+      <path
+        fill={color}
+        d="M440.415,583.554 L421.418,571.311 C420.291,570.704 419,570.767 419,572.946 L419,597.054 C419,599.046 420.385,599.36 421.418,598.689 L440.415,586.446 C441.197,585.647 441.197,584.353 440.415,583.554"
+        transform="translate(-419, -571)"
+      />
+    </svg>
+  );
+}

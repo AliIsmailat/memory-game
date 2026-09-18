@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useRef, useState } from "react";
 import type { GameMode, Round } from "../types";
-import { RecDot, TimerBar } from "./shared";
 
 export interface GestureRound extends Round {
   points: [number, number][];
@@ -91,8 +90,6 @@ function GesturePreview({ round }: { round: GestureRound }) {
           strokeLinejoin="round"
         />
       </svg>
-      <RecDot />
-      <TimerBar durationMs={2800} />
     </div>
   );
 }
@@ -118,11 +115,16 @@ function GestureIdle() {
     </div>
   );
 }
+
 function GestureGuessInput({
   onSubmit,
+  onRestart,
+  confirmingRestart,
 }: {
   round: GestureRound;
   onSubmit: (guess: GestureGuess) => void;
+  onRestart: () => void;
+  confirmingRestart: boolean;
 }) {
   const [points, setPoints] = useState<GestureGuess>([]);
   const drawing = useRef(false);
@@ -150,42 +152,56 @@ function GestureGuessInput({
   }
 
   return (
-    <div>
+    <div
+      ref={wrapRef}
+      className="canvas-wrap touch-none"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    >
+      <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full">
+        <path
+          d={toPath(points)}
+          fill="none"
+          stroke="#E2A63B"
+          strokeWidth={5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+
       <div
-        ref={wrapRef}
-        className="canvas-wrap touch-none"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
+        onPointerDown={(e) => e.stopPropagation()}
       >
-        <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full">
-          <path
-            d={toPath(points)}
-            fill="none"
-            stroke="#E2A63B"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <p className="text-center text-muted text-sm mt-3">
-        Draw the shape with your mouse or finger.
-      </p>
-      <div className="flex gap-2.5 justify-center mt-4">
-        <button
-          className="bg-transparent text-text border border-border text-sm font-semibold rounded-md px-4.5 py-2.5"
-          onClick={() => setPoints([])}
-        >
-          Clear
-        </button>
-        <button
-          className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4.5 py-2.5 disabled:opacity-40"
-          disabled={points.length < 3}
-          onClick={() => onSubmit(points)}
-        >
-          Lock in guess
-        </button>
+        <span className="text-white text-xs font-mono select-none pointer-events-none">
+          Draw the shape
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={onRestart}
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+              confirmingRestart
+                ? "bg-rec text-white"
+                : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"
+            }`}
+          >
+            {confirmingRestart ? "You sure?" : "Restart"}
+          </button>
+          <button
+            className="bg-white/10 text-white border border-white/20 text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:bg-white/20 active:scale-95"
+            onClick={() => setPoints([])}
+          >
+            Clear
+          </button>
+          <button
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition hover:brightness-110 active:scale-95"
+            disabled={points.length < 3}
+            onClick={() => onSubmit(points)}
+          >
+            Lock in
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -277,7 +293,7 @@ function computeGestureScore(target: [number, number][], guess: GestureGuess) {
   for (let i = 0; i < n; i++)
     sum += Math.hypot(rt[i][0] - ru[i][0], rt[i][1] - ru[i][1]);
   const avg = sum / n;
-  return Math.round(Math.max(0, 100 * (1 - avg / 110)));
+  return Math.max(0, 100 * (1 - avg / 110));
 }
 
 export const gestureMode: GameMode<GestureRound, GestureGuess> = {
@@ -285,11 +301,16 @@ export const gestureMode: GameMode<GestureRound, GestureGuess> = {
   name: "Gesture",
   description: "A shape gets drawn, then disappears. Redraw it from memory.",
   rounds: ROUNDS,
-  previewDurationMs: 2900,
+  previewDurationMs: 5000,
   renderIdle: () => <GestureIdle />,
   renderPreview: (round) => <GesturePreview round={round} />,
-  renderGuessInput: (round, onSubmit) => (
-    <GestureGuessInput round={round} onSubmit={onSubmit} />
+  renderGuessInput: (round, onSubmit, onRestart, confirmingRestart) => (
+    <GestureGuessInput
+      round={round}
+      onSubmit={onSubmit}
+      onRestart={onRestart}
+      confirmingRestart={confirmingRestart}
+    />
   ),
   renderResult: (round, guess) => <GestureResult round={round} guess={guess} />,
   computeScore: (round, guess) => computeGestureScore(round.points, guess),

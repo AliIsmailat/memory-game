@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useRef, useState } from "react";
 import type { GameMode, Round } from "../types";
-import { RecDot, TimerBar } from "./shared";
 
 interface Rect {
   x: number;
@@ -18,6 +17,7 @@ export interface CompositionGuess {
   x: number;
   y: number;
 }
+
 function randomRect(): Rect {
   const s = 0.45 + Math.random() * 0.25;
   const x = Math.random() * (1 - s);
@@ -119,6 +119,7 @@ function StreetScene() {
     </svg>
   );
 }
+
 const SCENES = [CafeScene, HorizonScene, PortraitScene, StreetScene];
 const ROUNDS: CompositionRound[] = SCENES.map((scene, i) => ({
   id: `r${i + 1}`,
@@ -151,8 +152,6 @@ function CompositionPreview({ round }: { round: CompositionRound }) {
       >
         <Scene />
       </div>
-      <RecDot />
-      <TimerBar durationMs={2800} />
     </div>
   );
 }
@@ -160,9 +159,13 @@ function CompositionPreview({ round }: { round: CompositionRound }) {
 function CompositionGuessInput({
   round,
   onSubmit,
+  onRestart,
+  confirmingRestart,
 }: {
   round: CompositionRound;
   onSubmit: (guess: CompositionGuess) => void;
+  onRestart: () => void;
+  confirmingRestart: boolean;
 }) {
   const s = round.rect.s;
   const [pos, setPos] = useState<CompositionGuess>({
@@ -194,32 +197,46 @@ function CompositionGuessInput({
   }
 
   return (
-    <div>
-      <div ref={wrapRef} className="canvas-wrap touch-none">
-        <Scene />
-        <div
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className="absolute border-2 border-amber bg-amber/15 cursor-grab active:cursor-grabbing"
-          style={{
-            left: `${pos.x * 100}%`,
-            top: `${pos.y * 100}%`,
-            width: `${s * 100}%`,
-            height: `${s * 100}%`,
-          }}
-        />
-      </div>
-      <p className="text-center text-muted text-sm mt-3">
-        Drag the frame to where you remember it.
-      </p>
-      <div className="flex gap-2.5 justify-center mt-4">
-        <button
-          className="bg-amber text-[#1B1500] text-sm font-semibold rounded-md px-4.5 py-2.5"
-          onClick={() => onSubmit(pos)}
-        >
-          Lock in guess
-        </button>
+    <div ref={wrapRef} className="canvas-wrap touch-none">
+      <Scene />
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        className="absolute border-2 border-amber bg-amber/15 cursor-grab active:cursor-grabbing"
+        style={{
+          left: `${pos.x * 100}%`,
+          top: `${pos.y * 100}%`,
+          width: `${s * 100}%`,
+          height: `${s * 100}%`,
+        }}
+      />
+
+      <div
+        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <span className="text-white text-xs font-mono select-none pointer-events-none">
+          Drag the frame
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={onRestart}
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+              confirmingRestart
+                ? "bg-rec text-white"
+                : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"
+            }`}
+          >
+            {confirmingRestart ? "You sure?" : "Restart"}
+          </button>
+          <button
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:brightness-110 active:scale-95"
+            onClick={() => onSubmit(pos)}
+          >
+            Lock in
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -269,7 +286,7 @@ function computeCompositionScore(target: Rect, guess: CompositionGuess) {
   const inter = iw * ih;
   const union = s * s * 2 - inter;
   const iou = union > 0 ? inter / union : 0;
-  return Math.round(iou * 100);
+  return iou * 100;
 }
 
 export const compositionMode: GameMode<CompositionRound, CompositionGuess> = {
@@ -278,11 +295,16 @@ export const compositionMode: GameMode<CompositionRound, CompositionGuess> = {
   description:
     "A photo appears already framed. Rebuild the exact crop from memory.",
   rounds: ROUNDS,
-  previewDurationMs: 2900,
+  previewDurationMs: 5000,
   renderIdle: () => <CompositionIdle />,
   renderPreview: (round) => <CompositionPreview round={round} />,
-  renderGuessInput: (round, onSubmit) => (
-    <CompositionGuessInput round={round} onSubmit={onSubmit} />
+  renderGuessInput: (round, onSubmit, onRestart, confirmingRestart) => (
+    <CompositionGuessInput
+      round={round}
+      onSubmit={onSubmit}
+      onRestart={onRestart}
+      confirmingRestart={confirmingRestart}
+    />
   ),
   renderResult: (round, guess) => (
     <CompositionResult round={round} guess={guess} />

@@ -1,5 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
+export function TimerDisplay({ durationMs }: { durationMs: number }) {
+  const [remaining, setRemaining] = useState(durationMs);
+  const startRef = useRef(0);
+
+  useEffect(() => {
+    startRef.current = performance.now();
+    let raf: number;
+    function tick() {
+      const elapsed = performance.now() - startRef.current;
+      const left = Math.max(0, durationMs - elapsed);
+      setRemaining(left);
+      if (left > 0) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [durationMs]);
+
+  return (
+    <div className="absolute top-3 right-3 font-mono text-2xl font-bold text-white drop-shadow-md">
+      {" "}
+      {(remaining / 1000).toFixed(2)}s
+    </div>
+  );
+}
 export function GridDots() {
   const positions: number[] = [];
   for (let g = 0.1; g < 1; g += 0.1) positions.push(Math.round(g * 100) / 100);
@@ -46,30 +70,58 @@ export function RecDot() {
   );
 }
 
-export function Countdown({
-  seconds,
-  onComplete,
-}: {
-  seconds: number;
-  onComplete: () => void;
-}) {
-  const [count, setCount] = useState(seconds);
+const STAGES = ["Ready", "Set", "Go!"];
+
+export function Countdown({ onComplete }: { onComplete: () => void }) {
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    if (count <= 0) {
+    if (index >= STAGES.length) {
       onComplete();
       return;
     }
-    const timer = setTimeout(() => setCount((c) => c - 1), 1000);
+    const timer = setTimeout(() => setIndex((i) => i + 1), 1000);
     return () => clearTimeout(timer);
-  }, [count, onComplete]);
+  }, [index, onComplete]);
 
   return (
     <div className="canvas-wrap flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-muted text-sm mb-2">Get ready</p>
-        <div className="font-mono text-amber text-6xl">{count}</div>
+      <div className="font-mono text-amber text-6xl uppercase tracking-wide">
+        {STAGES[index]}
       </div>
     </div>
+  );
+}
+
+export function CountUp({
+  target,
+  durationMs = 600,
+  suffix = "",
+  decimals = 0,
+}: {
+  target: number;
+  durationMs?: number;
+  suffix?: string;
+  decimals?: number;
+}) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    let raf: number;
+    const start = performance.now();
+    function tick(now: number) {
+      const t = Math.min(1, (now - start) / durationMs);
+      setValue(target * t);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, durationMs]);
+
+  return (
+    <>
+      {value.toFixed(decimals)}
+      {suffix}
+    </>
   );
 }
