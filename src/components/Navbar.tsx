@@ -4,8 +4,9 @@ import type { GameMode } from "../types";
 interface NavbarProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   modes: GameMode<any, any>[];
-  activeModeId: string;
+  activeModeId: string | null;
   onSelectMode: (id: string) => void;
+  onGoHome: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
 }
@@ -79,16 +80,22 @@ export function Navbar({
   modes,
   activeModeId,
   onSelectMode,
+  onGoHome,
   theme,
   onToggleTheme,
 }: NavbarProps) {
   return (
     <nav className="flex items-center justify-between gap-4 px-6 py-4 border-b border-border">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-md bg-amber flex items-center justify-center text-[#1B1500] font-bold text-sm">
-          M
-        </div>
-        <span className="font-semibold text-text">Memory Game</span>
+        <button
+          onClick={onGoHome}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-md bg-amber flex items-center justify-center text-[#1B1500] font-bold text-sm">
+            M
+          </div>
+          <span className="font-semibold text-text">Memory Game</span>
+        </button>
       </div>
 
       <div className="flex gap-2">
