@@ -154,7 +154,6 @@ export function MoonIcon({
         fill={color}
         d="M70.5,0C65.7,10,62.9,21.3,62.9,33.1C62.9,75.4,97.3,109.6,139.7,109.6C154.8,109.6,168.9,105.2,180.8,97.7C176,143,137.4,178.4,90.6,178.4C40.6,178.4,0,138,0,88.1C0,45.1,30.1,9.1,70.5,0Z"
       />
-
       <g opacity="0">
         <animate
           repeatCount="indefinite"
@@ -173,7 +172,6 @@ export function MoonIcon({
           />
         </g>
       </g>
-
       <g opacity="0">
         <animate
           repeatCount="indefinite"
@@ -192,7 +190,6 @@ export function MoonIcon({
           />
         </g>
       </g>
-
       <g opacity="0">
         <animate
           repeatCount="indefinite"
@@ -211,7 +208,6 @@ export function MoonIcon({
           />
         </g>
       </g>
-
       <g>
         <animate
           repeatCount="indefinite"
@@ -279,32 +275,6 @@ export function CloudIcon({
       <path
         fill={color}
         d="M14.544 9.772a3.506 3.506 0 0 0-2.225-1.676 5.502 5.502 0 0 0-6.337-4.002 4.002 4.002 0 0 1 7.392.91 2.5 2.5 0 0 1 1.17 4.769z"
-      />
-    </svg>
-  );
-}
-
-export function PlayIcon({
-  size = 24,
-  color = "currentColor",
-  className = "",
-}: {
-  size?: number;
-  color?: string;
-  className?: string;
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="-3 0 28 28"
-      fill="none"
-      className={className}
-    >
-      <path
-        fill={color}
-        d="M440.415,583.554 L421.418,571.311 C420.291,570.704 419,570.767 419,572.946 L419,597.054 C419,599.046 420.385,599.36 421.418,598.689 L440.415,586.446 C441.197,585.647 441.197,584.353 440.415,583.554"
-        transform="translate(-419, -571)"
       />
     </svg>
   );

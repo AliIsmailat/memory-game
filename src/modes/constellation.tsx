@@ -243,6 +243,29 @@ function ConstellationResult({
           {i + 1}
         </div>
       ))}
+      {pairs.map((pr, i) => {
+        const dx = pr.guess[0] - pr.target[0];
+        const dy = pr.guess[1] - pr.target[1];
+        const dist = Math.round(Math.hypot(dx, dy) * 100);
+        if (dist < 6) return null;
+
+        const midX = ((pr.guess[0] + pr.target[0]) / 2) * 100;
+        const midY = ((pr.guess[1] + pr.target[1]) / 2) * 100;
+
+        const len = Math.hypot(dx, dy) || 1;
+        const offsetX = (-dy / len) * 3.5;
+        const offsetY = (dx / len) * 3.5;
+
+        return (
+          <div
+            key={`d-${i}`}
+            className="absolute text-[10px] font-mono text-white bg-black/60 rounded-full px-1.5 py-0.5 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ left: `${midX + offsetX}%`, top: `${midY + offsetY}%` }}
+          >
+            {dist}
+          </div>
+        );
+      })}
     </div>
   );
 }

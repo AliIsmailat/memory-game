@@ -1,4 +1,4 @@
-import { SunIcon, MoonIcon, StarIcon, CloudIcon } from "./icons";
+import { SunIcon, MoonIcon, StarIcon, CloudIcon } from "./icons/theme";
 import type { GameMode } from "../types";
 
 interface NavbarProps {
@@ -24,11 +24,14 @@ function ThemeToggle({
     <button
       onClick={onToggle}
       aria-label="Toggle theme"
-      className="relative w-16 h-8 rounded-full overflow-hidden transition-colors duration-300"
+      className="theme-toggle-btn relative w-16 h-8 rounded-full overflow-hidden transition-colors duration-300"
       style={{
+        boxShadow: isDark
+          ? "0 0 0 2px color-mix(in srgb, var(--color-amber) 65%, transparent)"
+          : "0 0 0 2px color-mix(in srgb, var(--color-amber) 75%, transparent)",
         background: isDark
-          ? "linear-gradient(90deg, var(--color-stage-deep), var(--color-stage))"
-          : "linear-gradient(90deg, color-mix(in srgb, var(--color-amber) 35%, var(--color-panel)), color-mix(in srgb, var(--color-amber) 15%, var(--color-panel)))",
+          ? "linear-gradient(90deg, var(--color-stage-deep), color-mix(in srgb, var(--color-stage) 70%, var(--color-amber) 15%))"
+          : "linear-gradient(90deg, color-mix(in srgb, var(--color-amber) 55%, var(--color-panel)), color-mix(in srgb, var(--color-amber) 30%, var(--color-panel)))",
       }}
     >
       {isDark && (

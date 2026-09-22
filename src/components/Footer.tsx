@@ -6,13 +6,22 @@ export function Footer() {
           &copy; {new Date().getFullYear()} Memory Game. All rights reserved.
         </span>
         <div className="flex gap-4">
-          <a href="#" className="transition-colors hover:text-text">
+          <a
+            href="#"
+            className="transition-colors hover:text-amber hover:underline underline-offset-4"
+          >
             About
           </a>
-          <a href="#" className="transition-colors hover:text-text">
+          <a
+            href="#"
+            className="transition-colors hover:text-amber hover:underline underline-offset-4"
+          >
             GitHub
           </a>
-          <a href="#" className="transition-colors hover:text-text">
+          <a
+            href="#"
+            className="transition-colors hover:text-amber hover:underline underline-offset-4"
+          >
             Contact
           </a>
         </div>

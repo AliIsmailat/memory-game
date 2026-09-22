@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Theme tokens
+   ========================================================================== */
+
 @theme {
   --color-bg: #f3e6d2;
   --color-panel: #ffffff;
   --color-border: #e2dfda;
   --color-text: #17181a;
-  --color-muted: #6b6e76;
+  --color-muted: #000000;
   --color-amber: #c98a2e;
   --color-rec: #d64545;
   --color-good: #3e7d52;
-  --font-sans: "Space Grotesk", sans-serif;
+  --font-sans: "Sora", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
-
   --color-stage: #1b1c1e;
   --color-stage-deep: #0c0d0e;
 }
@@ -21,11 +24,15 @@
   --color-panel: #1b1c1e;
   --color-border: #2e2f32;
   --color-text: #ededec;
-  --color-muted: #8b8d93;
+  --color-muted: #ffffff;
   --color-amber: #e2a63b;
   --color-rec: #d64545;
   --color-good: #5fa870;
 }
+
+/* ==========================================================================
+   Base body + light/dark background crossfade
+   ========================================================================== */
 
 body {
   margin: 0;
@@ -61,6 +68,10 @@ body::after {
   opacity: 1;
 }
 
+/* ==========================================================================
+   Global transitions
+   ========================================================================== */
+
 body,
 nav,
 footer,
@@ -72,6 +83,35 @@ button {
     transform 0.35s cubic-bezier(0.34, 1.7, 0.64, 1);
 }
 
+/* ==========================================================================
+   Play button (breathe in idle, squash on click)
+   ========================================================================== */
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes squash {
+  0% {
+    scale: 1 1;
+  }
+  30% {
+    scale: 1.15 0.75;
+  }
+  55% {
+    scale: 0.9 1.15;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
 .play-btn {
   animation: breathe 2.4s ease-in-out infinite;
   transition: scale 0.5s cubic-bezier(0.34, 1.7, 0.64, 1);
@@ -81,6 +121,22 @@ button {
   transition: scale 0.35s cubic-bezier(0.34, 1.7, 0.64, 1) 0.15s;
   scale: 1.12;
 }
+.play-btn.firing {
+  animation: squash 0.4s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+
+.theme-toggle-btn {
+  cursor: pointer;
+}
+.theme-toggle-btn:hover {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-amber) 85%, transparent),
+    0 0 8px 1px color-mix(in srgb, var(--color-amber) 70%, transparent) !important;
+}
+
+/* ==========================================================================
+   Per-mode idle animations (shown before a round starts)
+   ========================================================================== */
 
 @keyframes twinkle {
   0%,
@@ -127,70 +183,181 @@ button {
   animation: idle-sway 3s ease-in-out infinite;
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0.25;
+/* ==========================================================================
+   Mode card icon hover animations (Home page)
+   ========================================================================== */
+
+/* Constellation: dashed line flows, dots twinkle */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -14;
   }
 }
 
-@keyframes breathe {
+/* Gesture: pen stroke loops across the icon */
+@keyframes gesture-draw {
+  0% {
+    stroke-dashoffset: 160;
+  }
+  100% {
+    stroke-dashoffset: -160;
+  }
+}
+.gesture-stroke {
+  stroke-dasharray: 160;
+  stroke-dashoffset: 160;
+}
+.group:hover .gesture-stroke {
+  animation: gesture-draw 1.6s linear infinite;
+}
+
+/* Composition: each corner bracket erases and redraws itself, offset in time */
+.composition-tl,
+.composition-br {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 0;
+}
+
+@keyframes composition-draw-cycle {
   0%,
   100% {
-    transform: scale(1);
+    stroke-dashoffset: 0;
   }
-  50% {
-    transform: scale(1.04);
-  }
-}
-@keyframes squash {
-  0% {
-    scale: 1 1;
-  }
-  30% {
-    scale: 1.15 0.75;
+  25% {
+    stroke-dashoffset: 40;
   }
   55% {
-    scale: 0.9 1.15;
+    stroke-dashoffset: 0;
   }
-  100% {
-    scale: 1 1;
-  }
-}
-.play-btn.firing {
-  animation: squash 0.4s cubic-bezier(0.34, 1.6, 0.64, 1);
-}
-@keyframes play-launch {
-  0% {
-    transform: scale(1) rotate(0deg);
-  }
-  40% {
-    transform: scale(0.7) rotate(90deg);
-  }
-  70% {
-    transform: scale(1.25) rotate(300deg);
-  }
-  100% {
-    transform: scale(1) rotate(360deg);
-  }
-}
-.animate-play-launch {
-  animation: play-launch 0.4s cubic-bezier(0.34, 1.7, 0.64, 1);
 }
 
-@keyframes pulse-once {
-  0% {
-    transform: scale(1);
+.group:hover .composition-tl {
+  animation: composition-draw-cycle 4.4s ease-in-out infinite;
+}
+.group:hover .composition-br {
+  animation: composition-draw-cycle 4.4s ease-in-out infinite 0.4s;
+}
+
+/* Pose: figure moves one joint at a time, robotic (steps, not smooth human motion) */
+.pose-l-shoulder,
+.pose-r-shoulder,
+.pose-l-elbow,
+.pose-r-elbow,
+.pose-l-hip,
+.pose-r-hip {
+  transform: rotate(0deg);
+}
+
+@keyframes pose-l-shoulder {
+  0%,
+  3.57% {
+    transform: rotate(0deg);
   }
-  50% {
-    transform: scale(1.2);
+  7.14% {
+    transform: rotate(60deg);
+  }
+  35.71% {
+    transform: rotate(60deg);
+  }
+  39.29% {
+    transform: rotate(0deg);
   }
   100% {
-    transform: scale(1);
+    transform: rotate(0deg);
   }
 }
-.animate-pulse-once {
-  animation: pulse-once 0.4s ease;
+@keyframes pose-r-elbow {
+  0%,
+  10.71% {
+    transform: rotate(0deg);
+  }
+  14.29% {
+    transform: rotate(-50deg);
+  }
+  57.14% {
+    transform: rotate(-50deg);
+  }
+  60.71% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
 }
+@keyframes pose-r-hip {
+  0%,
+  21.43% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-30deg);
+  }
+  78.57% {
+    transform: rotate(-30deg);
+  }
+  82.14% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes pose-l-elbow {
+  0%,
+  46.43% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(40deg);
+  }
+  85.71% {
+    transform: rotate(40deg);
+  }
+  89.29% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes pose-l-hip {
+  0%,
+  67.86% {
+    transform: rotate(0deg);
+  }
+  71.43% {
+    transform: rotate(25deg);
+  }
+  92.86% {
+    transform: rotate(25deg);
+  }
+  96.43% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.group:hover .pose-l-shoulder {
+  animation: pose-l-shoulder 14s ease infinite;
+}
+.group:hover .pose-r-elbow {
+  animation: pose-r-elbow 14s ease infinite;
+}
+.group:hover .pose-r-hip {
+  animation: pose-r-hip 14s ease infinite;
+}
+.group:hover .pose-l-elbow {
+  animation: pose-l-elbow 14s ease infinite;
+}
+.group:hover .pose-l-hip {
+  animation: pose-l-hip 14s ease infinite;
+}
+
+/* ==========================================================================
+   Celestial (sun/moon) easter egg
+   ========================================================================== */
 
 @keyframes angry-shake {
   0%,
@@ -213,6 +380,10 @@ button {
 .animate-angry-shake {
   animation: angry-shake 0.5s ease;
 }
+
+/* ==========================================================================
+   Shared component classes
+   ========================================================================== */
 
 @layer components {
   .canvas-wrap {
@@ -270,6 +441,12 @@ button {
     width: 100%;
     transform-origin: left;
   }
+
+  @keyframes blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
   .rec-dot {
     position: absolute;
     top: 8px;
@@ -303,7 +480,7 @@ button {
     cursor: pointer;
   }
   .nav-link:hover {
-    color: var(--color-text);
+    color: var(--color-amber);
     transform: scale(1.06);
   }
   .nav-link::after {

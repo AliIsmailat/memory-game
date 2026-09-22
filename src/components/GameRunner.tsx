@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameMode, Round } from "../types";
 import { Countdown, TimerDisplay, TimerBar, CountUp } from "../modes/shared";
-import { PlayIcon } from "./icons";
+import { PlayIcon } from "./icons/modes";
 
 type Phase = "idle" | "countdown" | "preview" | "guess" | "result" | "final";
 

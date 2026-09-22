@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SunburstIcon, MoonIcon, SunFace, MoonFace } from "./icons";
+import { SunburstIcon, MoonIcon, SunFace, MoonFace } from "./icons/theme";
 const CURVE_PATH = "M 390 300 C 390 490 520 530 760 580";
 
 export function CelestialTransition({ theme }: { theme: "light" | "dark" }) {
@@ -41,7 +41,7 @@ export function CelestialTransition({ theme }: { theme: "light" | "dark" }) {
         >
           <SunburstIcon size={130} />
           <div className="absolute inset-0 flex items-start justify-center pt-8 transition-opacity duration-200">
-            <SunFace size={55} angry={sunAngry} color="#000000" />
+            <SunFace size={55} angry={sunAngry} color="#5F3A0F" />
           </div>
         </div>
       </div>
