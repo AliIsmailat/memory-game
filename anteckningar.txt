@@ -1,2 +1,20 @@
 lägg till distance i constellation i pixlar
 där man jämför användarens försök med og bilden
+
+
+Gör snart, litet/medelstort jobb, förbättrar det som redan finns:
+
+Gesture-scoring-buggen. Det här är egentligen ett rättvise-problem, inte en finish, om ett perfekt resultat är matematiskt omöjligt att uppnå just nu oavsett hur bra spelaren är, är poängsystemet trasigt på ett sätt som stör spelupplevelsen. Värt att fixa innan ni lägger mer tid på annat i det läget.
+Mer randomisering i alla lägen. Relativt avgränsat jobb (byta hårdkodade rond-arrayer mot genererade), och gör hela spelet kännas bättre direkt varje gång någon spelar om.
+Responsivitet. Grundläggande, och helst gjort innan ni bygger mer ovanpå, annars riskerar ni att behöva göra om nya features en gång till för mobil.
+
+Gör när ni ändå är i "identitet"-läge:
+4. Namn + ny ikon. Fristående, påverkar inget annat tekniskt, kan göras när ni känner för det.
+
+Fristående innehållsjobb, gör när ni har ro:
+5. Composition fas 2 (riktiga bilder/illustrationer istället för handritade scener).
+
+Stort, eget projekt, inte en "finish"-uppgift:
+6. Konton + multiplayer/score-jämförelse. Det här är kvalitativt annorlunda än allt annat på listan, det kräver en backend (databas, autentisering, API), inte bara frontend-arbete. Jag skulle behandla det som en helt egen fas, inte klumpa ihop med resten, och göra det sist eftersom allt annat (särskilt responsivitet och stabil scoring) bör vara klart innan ni bygger konton ovanpå det.
+
+Min rekommendation: börja med Gesture-fixen (den är faktiskt en bugg, inte en förbättring), sen randomisering, sen responsivitet. Vill du börja där, eller är det något annat på listan som känns mer akut för dig just nu?

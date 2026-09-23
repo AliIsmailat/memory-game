@@ -1,4 +1,5 @@
 import { SunIcon, MoonIcon, StarIcon, CloudIcon } from "./icons/theme";
+import { BrainLogoIcon } from "./icons/logo";
 import type { GameMode } from "../types";
 
 interface NavbarProps {
@@ -87,6 +88,8 @@ export function Navbar({
   theme,
   onToggleTheme,
 }: NavbarProps) {
+  const logoColor = theme === "dark" ? "var(--color-amber)" : "#000000";
+
   return (
     <nav className="flex items-center justify-between gap-4 px-6 py-4 border-b border-border">
       <div className="flex items-center gap-2">
@@ -94,9 +97,12 @@ export function Navbar({
           onClick={onGoHome}
           className="flex items-center gap-2 cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-md bg-amber flex items-center justify-center text-[#1B1500] font-bold text-sm">
-            M
-          </div>
+          <BrainLogoIcon
+            size={38}
+            color={logoColor}
+            strokeColor={logoColor}
+            strokeWidth={18}
+          />
           <span className="font-semibold text-text">Memory Game</span>
         </button>
       </div>
