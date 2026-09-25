@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useRef, useState } from "react";
 import type { GameMode, Round } from "../types";
+import { GridDots } from "./shared";
 
 export interface GestureRound extends Round {
   points: [number, number][];
@@ -79,6 +80,7 @@ function GesturePreview({ round }: { round: GestureRound }) {
 
   return (
     <div className="canvas-wrap">
+      <GridDots />
       <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full">
         <path
           ref={pathRef}
@@ -279,19 +281,44 @@ function resample(points: [number, number][], n: number): [number, number][] {
   return out;
 }
 
+function smoothPoints(
+  points: [number, number][],
+  windowSize = 3,
+): [number, number][] {
+  if (points.length < windowSize) return points;
+  const half = Math.floor(windowSize / 2);
+  return points.map((_, i) => {
+    const start = Math.max(0, i - half);
+    const end = Math.min(points.length - 1, i + half);
+    let sx = 0,
+      sy = 0,
+      count = 0;
+    for (let j = start; j <= end; j++) {
+      sx += points[j][0];
+      sy += points[j][1];
+      count++;
+    }
+    return [sx / count, sy / count] as [number, number];
+  });
+}
+
 function computeGestureScore(target: [number, number][], guess: GestureGuess) {
+  const smoothedGuess = smoothPoints(guess);
   const targetPx = target.map(
     (p) => [p[0] * 400, p[1] * 400] as [number, number],
   );
-  const guessPx = guess.map(
+  const guessPx = smoothedGuess.map(
     (p) => [p[0] * 400, p[1] * 400] as [number, number],
   );
   const n = 24;
   const rt = resample(targetPx, n);
   const ru = resample(guessPx, n);
+  const tolerancePx = 6;
   let sum = 0;
-  for (let i = 0; i < n; i++)
-    sum += Math.hypot(rt[i][0] - ru[i][0], rt[i][1] - ru[i][1]);
+  for (let i = 0; i < n; i++) {
+    const dist = Math.hypot(rt[i][0] - ru[i][0], rt[i][1] - ru[i][1]);
+    sum += Math.max(0, dist - tolerancePx);
+  }
   const avg = sum / n;
   return Math.max(0, 100 * (1 - avg / 110));
 }
