@@ -86,7 +86,7 @@ export function Countdown({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="canvas-wrap flex items-center justify-center">
-      <div className="font-mono text-amber text-6xl uppercase tracking-wide">
+      <div className="font-mono text-amber text-6xl uppercase tracking-wide select-none pointer-events-none">
         {STAGES[index]}
       </div>
     </div>

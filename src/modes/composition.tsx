@@ -121,11 +121,17 @@ function StreetScene() {
 }
 
 const SCENES = [CafeScene, HorizonScene, PortraitScene, StreetScene];
-const ROUNDS: CompositionRound[] = SCENES.map((scene, i) => ({
-  id: `r${i + 1}`,
-  scene,
-  rect: randomRect(),
-}));
+
+// Rounds are built fresh each time a session starts (see regenerateRounds
+// below), so the crop rectangle is re-randomized on every Play / Restart
+// instead of being frozen once at module load.
+function buildRounds(): CompositionRound[] {
+  return SCENES.map((scene, i) => ({
+    id: `r${i + 1}`,
+    scene,
+    rect: randomRect(),
+  }));
+}
 
 function CompositionIdle() {
   return (
@@ -231,7 +237,7 @@ function CompositionGuessInput({
             {confirmingRestart ? "You sure?" : "Restart"}
           </button>
           <button
-            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:brightness-110 active:scale-95"
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:brightness-110 active:scale-95 select-none"
             onClick={() => onSubmit(pos)}
           >
             Lock in
@@ -294,7 +300,8 @@ export const compositionMode: GameMode<CompositionRound, CompositionGuess> = {
   name: "Composition",
   description:
     "A photo appears already framed. Rebuild the exact crop from memory.",
-  rounds: ROUNDS,
+  rounds: buildRounds(),
+  regenerateRounds: buildRounds,
   previewDurationMs: 5000,
   renderIdle: () => <CompositionIdle />,
   renderPreview: (round) => <CompositionPreview round={round} />,

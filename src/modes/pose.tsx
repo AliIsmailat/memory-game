@@ -30,29 +30,6 @@ const HEAD_R = 27;
 
 const NEUTRAL: PoseAngles = { rS: 100, rE: 0, lS: 90, lE: 0, rH: 95, lH: 85 };
 
-const ROUNDS: PoseRound[] = [
-  {
-    id: "r1",
-    name: "Point up",
-    pose: { rS: -90, rE: 0, lS: 100, lE: 0, rH: 95, lH: 85 },
-  },
-  {
-    id: "r2",
-    name: "Flex",
-    pose: { rS: -10, rE: -100, lS: 100, lE: 0, rH: 95, lH: 85 },
-  },
-  {
-    id: "r3",
-    name: "Kick",
-    pose: { rS: 0, rE: 0, lS: 180, lE: 0, rH: -30, lH: 95 },
-  },
-  {
-    id: "r4",
-    name: "Point down",
-    pose: { rS: 40, rE: 70, lS: 100, lE: 0, rH: 95, lH: 85 },
-  },
-];
-
 function polar(
   base: [number, number],
   len: number,
@@ -66,6 +43,135 @@ function angDiff(a: number, b: number) {
   let d = Math.abs(a - b) % 360;
   if (d > 180) d = 360 - d;
   return d;
+}
+
+// -- Procedural pose generation ----------------------------------------------
+// Each joint angle is drawn from a range that keeps the figure looking like a
+// plausible pose (shoulders/hips can swing wide, elbows don't hyperextend
+// past a natural bend). Poses are re-rolled if they end up too close to the
+// neutral resting stance, so every round is an actual distinct pose to
+// memorize rather than a barely-changed one.
+
+const SHOULDER_RANGE: [number, number] = [-170, 170];
+const ELBOW_BEND_RANGE: [number, number] = [-120, 120];
+const HIP_RANGE: [number, number] = [-60, 150];
+const MIN_AVG_DEVIATION_FROM_NEUTRAL = 30;
+// Minimum distance (in the same SVG units as the figure, 300x400) between
+// every pair of draggable joint handles, so two handles never end up so
+// close together that clicking one reliably hits the other instead.
+const MIN_HANDLE_DIST = 34;
+// Extra clearance (beyond the head's own radius) that every arm segment
+// must keep from the head's center, so an arm never visually slices through
+// the head circle (which also hides that joint's true angle during preview,
+// making it impossible to guess correctly).
+const HEAD_CLEARANCE = 10;
+const MAX_ATTEMPTS = 200;
+
+function distPointToSegment(
+  pt: [number, number],
+  a: [number, number],
+  b: [number, number],
+): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq === 0) return Math.hypot(pt[0] - a[0], pt[1] - a[1]);
+  const t = Math.max(
+    0,
+    Math.min(1, ((pt[0] - a[0]) * dx + (pt[1] - a[1]) * dy) / lengthSq),
+  );
+  const cx = a[0] + t * dx;
+  const cy = a[1] + t * dy;
+  return Math.hypot(pt[0] - cx, pt[1] - cy);
+}
+
+function clearsHead(pose: PoseAngles): boolean {
+  const j = poseJoints(pose);
+  const armSegments: [[number, number], [number, number]][] = [
+    [R_SHOULDER, j.rElbow],
+    [j.rElbow, j.rHand],
+    [L_SHOULDER, j.lElbow],
+    [j.lElbow, j.lHand],
+  ];
+  return armSegments.every(
+    ([a, b]) => distPointToSegment(HEAD_C, a, b) >= HEAD_R + HEAD_CLEARANCE,
+  );
+}
+
+function randInRange([min, max]: [number, number]) {
+  return min + Math.random() * (max - min);
+}
+
+function handleDistanceOk(pose: PoseAngles): boolean {
+  const j = poseJoints(pose);
+  const handlePoints = [j.rElbow, j.rHand, j.lElbow, j.lHand, j.rFoot, j.lFoot];
+  for (let i = 0; i < handlePoints.length; i++) {
+    for (let k = i + 1; k < handlePoints.length; k++) {
+      const d = Math.hypot(
+        handlePoints[i][0] - handlePoints[k][0],
+        handlePoints[i][1] - handlePoints[k][1],
+      );
+      if (d < MIN_HANDLE_DIST) return false;
+    }
+  }
+  return true;
+}
+
+function tryGeneratePose(): PoseAngles | null {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const pose: PoseAngles = {
+      rS: randInRange(SHOULDER_RANGE),
+      rE: randInRange(ELBOW_BEND_RANGE),
+      lS: randInRange(SHOULDER_RANGE),
+      lE: randInRange(ELBOW_BEND_RANGE),
+      rH: randInRange(HIP_RANGE),
+      lH: randInRange(HIP_RANGE),
+    };
+
+    const avgDeviation =
+      (angDiff(pose.rS, NEUTRAL.rS) +
+        angDiff(pose.rE, NEUTRAL.rE) +
+        angDiff(pose.lS, NEUTRAL.lS) +
+        angDiff(pose.lE, NEUTRAL.lE) +
+        angDiff(pose.rH, NEUTRAL.rH) +
+        angDiff(pose.lH, NEUTRAL.lH)) /
+      6;
+
+    if (
+      avgDeviation >= MIN_AVG_DEVIATION_FROM_NEUTRAL &&
+      handleDistanceOk(pose) &&
+      clearsHead(pose)
+    ) {
+      return pose;
+    }
+  }
+  return null;
+}
+
+const FALLBACK_POSES: PoseAngles[] = [
+  { rS: -90, rE: 0, lS: 100, lE: 0, rH: 95, lH: 85 },
+  { rS: -10, rE: -100, lS: 100, lE: 0, rH: 95, lH: 85 },
+  { rS: 0, rE: 0, lS: 180, lE: 0, rH: -30, lH: 95 },
+  { rS: 40, rE: 70, lS: 100, lE: 0, rH: 95, lH: 85 },
+];
+
+function randomPose(): PoseAngles {
+  return (
+    tryGeneratePose() ??
+    FALLBACK_POSES[Math.floor(Math.random() * FALLBACK_POSES.length)]
+  );
+}
+
+const ROUND_COUNT = 4;
+
+// Rounds are built fresh each time a session starts (see regenerateRounds
+// below), so a brand new set of poses is generated on every Play / Restart.
+function buildRounds(): PoseRound[] {
+  return Array.from({ length: ROUND_COUNT }, (_, i) => ({
+    id: `r${i + 1}`,
+    name: `Pose ${i + 1}`,
+    pose: randomPose(),
+  }));
 }
 
 function poseJoints(p: PoseAngles) {
@@ -295,7 +401,7 @@ function PoseGuessInput({
             key={h.id}
             cx={h.p[0]}
             cy={h.p[1]}
-            r={12}
+            r={14}
             fill="#E2A63B"
             fillOpacity={0.9}
             className="cursor-grab active:cursor-grabbing"
@@ -304,14 +410,14 @@ function PoseGuessInput({
         ))}
       </svg>
 
-      <div
-        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg pointer-events-none">
         <span className="text-white text-xs font-mono select-none pointer-events-none">
           Drag the joints
         </span>
-        <div className="flex gap-2">
+        <div
+          className="flex gap-2 pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <button
             onClick={onRestart}
             className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
@@ -368,7 +474,8 @@ export const poseMode: GameMode<PoseRound, PoseGuess> = {
   name: "Pose",
   description:
     "A figure holds a pose for a moment. Rebuild it, joint by joint.",
-  rounds: ROUNDS,
+  rounds: buildRounds(),
+  regenerateRounds: buildRounds,
   previewDurationMs: 5000,
   renderIdle: () => <PoseIdle />,
   renderPreview: (round) => <PosePreview round={round} />,

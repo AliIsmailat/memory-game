@@ -16,6 +16,14 @@ export interface GameMode<TRound extends Round = Round, TGuess = unknown> {
   rounds: TRound[];
   previewDurationMs?: number;
 
+  /**
+   * Optional: called whenever a fresh game session starts (first mount, and
+   * on Restart). Return a new rounds array. Modes that don't need per-session
+   * randomization (fixed round sets) can omit this entirely, behavior is
+   * unchanged for them.
+   */
+  regenerateRounds?: () => TRound[];
+
   renderIdle?: () => React.ReactNode;
   renderPreview: (round: TRound) => React.ReactNode;
   renderGuessInput: (

@@ -9,48 +9,83 @@ export interface ConstellationRound extends Round {
 
 export type ConstellationGuess = [number, number][];
 
-const ROUNDS: ConstellationRound[] = [
-  {
-    id: "r1",
-    points: [
-      [0.22, 0.3],
-      [0.68, 0.2],
-      [0.5, 0.55],
-      [0.78, 0.72],
-      [0.2, 0.75],
-    ],
-  },
-  {
-    id: "r2",
-    points: [
-      [0.3, 0.65],
-      [0.62, 0.72],
-      [0.45, 0.35],
-      [0.8, 0.3],
-      [0.18, 0.22],
-    ],
-  },
-  {
-    id: "r3",
-    points: [
-      [0.5, 0.18],
-      [0.75, 0.45],
-      [0.6, 0.78],
-      [0.28, 0.68],
-      [0.24, 0.38],
-    ],
-  },
-  {
-    id: "r4",
-    points: [
-      [0.35, 0.22],
-      [0.72, 0.28],
-      [0.7, 0.62],
-      [0.42, 0.78],
-      [0.18, 0.5],
-    ],
-  },
+// -- Procedural point generation ---------------------------------------------
+// Points stay within a margined square (clear of the edges) and keep a
+// minimum distance from every other point, so no two targets ever land close
+// enough to be indistinguishable when clicking them back.
+
+const MARGIN = 0.16;
+const MIN_DIST = 0.22;
+// Always 4 points for now. A future "hard mode" can raise this (e.g. 5-6)
+// for extra difficulty without changing anything else here.
+const POINTS_PER_ROUND = 4;
+const MAX_ATTEMPTS_PER_POINT = 200;
+const MAX_ATTEMPTS_PER_SET = 200;
+
+function pointDist(a: [number, number], b: [number, number]) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
+}
+
+function tryGeneratePoints(n: number): [number, number][] | null {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS_PER_SET; attempt++) {
+    const pts: [number, number][] = [];
+    let ok = true;
+
+    for (let i = 0; i < n; i++) {
+      let placed = false;
+      for (let t = 0; t < MAX_ATTEMPTS_PER_POINT; t++) {
+        const cand: [number, number] = [
+          MARGIN + Math.random() * (1 - 2 * MARGIN),
+          MARGIN + Math.random() * (1 - 2 * MARGIN),
+        ];
+        if (pts.some((p) => pointDist(cand, p) < MIN_DIST)) continue;
+        pts.push(cand);
+        placed = true;
+        break;
+      }
+      if (!placed) {
+        ok = false;
+        break;
+      }
+    }
+
+    if (ok && pts.length === n) return pts;
+  }
+  return null;
+}
+
+const FALLBACK_POINT_SETS: [number, number][][] = [
+  [
+    [0.22, 0.3],
+    [0.68, 0.2],
+    [0.5, 0.55],
+    [0.78, 0.72],
+  ],
+  [
+    [0.3, 0.65],
+    [0.62, 0.72],
+    [0.45, 0.35],
+    [0.8, 0.3],
+  ],
 ];
+
+function randomPoints(): [number, number][] {
+  return (
+    tryGeneratePoints(POINTS_PER_ROUND) ??
+    FALLBACK_POINT_SETS[Math.floor(Math.random() * FALLBACK_POINT_SETS.length)]
+  );
+}
+
+const ROUND_COUNT = 4;
+
+// Rounds are built fresh each time a session starts (see regenerateRounds
+// below), so a brand new set of points is generated on every Play / Restart.
+function buildRounds(): ConstellationRound[] {
+  return Array.from({ length: ROUND_COUNT }, (_, i) => ({
+    id: `r${i + 1}`,
+    points: randomPoints(),
+  }));
+}
 
 function ConstellationIdle() {
   const [stars] = useState(() =>
@@ -113,7 +148,7 @@ function ConstellationGuessInput({
   const [guesses, setGuesses] = useState<ConstellationGuess>([]);
 
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
-    if (guesses.length >= 5) return;
+    if (guesses.length >= POINTS_PER_ROUND) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
@@ -142,7 +177,7 @@ function ConstellationGuessInput({
         onClick={(e) => e.stopPropagation()}
       >
         <span className="text-white text-xs font-mono select-none pointer-events-none">
-          {guesses.length}/5 placed
+          {guesses.length}/{POINTS_PER_ROUND} placed
         </span>
         <div className="flex gap-2">
           <button
@@ -156,14 +191,14 @@ function ConstellationGuessInput({
             {confirmingRestart ? "You sure?" : "Restart"}
           </button>
           <button
-            className="bg-white/10 text-white border border-white/20 text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:bg-white/20 active:scale-95"
+            className="bg-white/10 text-white border border-white/20 text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:bg-white/20 active:scale-95 select-none"
             onClick={handleUndo}
           >
             Undo
           </button>
           <button
-            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition hover:brightness-110 active:scale-95"
-            disabled={guesses.length !== 5}
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition hover:brightness-110 active:scale-95 select-none"
+            disabled={guesses.length !== POINTS_PER_ROUND}
             onClick={() => onSubmit(guesses)}
           >
             Lock in
@@ -172,10 +207,6 @@ function ConstellationGuessInput({
       </div>
     </div>
   );
-}
-
-function dist(a: [number, number], b: [number, number]) {
-  return Math.hypot(a[0] - b[0], a[1] - b[1]);
 }
 
 function matchPairs(targets: [number, number][], guesses: ConstellationGuess) {
@@ -189,7 +220,7 @@ function matchPairs(targets: [number, number][], guesses: ConstellationGuess) {
     let bestIdx = -1;
     let bestDist = Infinity;
     remaining.forEach((t, ri) => {
-      const d = dist(g, t.p);
+      const d = pointDist(g, t.p);
       if (d < bestDist) {
         bestDist = d;
         bestIdx = ri;
@@ -243,29 +274,6 @@ function ConstellationResult({
           {i + 1}
         </div>
       ))}
-      {pairs.map((pr, i) => {
-        const dx = pr.guess[0] - pr.target[0];
-        const dy = pr.guess[1] - pr.target[1];
-        const dist = Math.round(Math.hypot(dx, dy) * 100);
-        if (dist < 6) return null;
-
-        const midX = ((pr.guess[0] + pr.target[0]) / 2) * 100;
-        const midY = ((pr.guess[1] + pr.target[1]) / 2) * 100;
-
-        const len = Math.hypot(dx, dy) || 1;
-        const offsetX = (-dy / len) * 3.5;
-        const offsetY = (dx / len) * 3.5;
-
-        return (
-          <div
-            key={`d-${i}`}
-            className="absolute text-[10px] font-mono text-white bg-black/60 rounded-full px-1.5 py-0.5 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ left: `${midX + offsetX}%`, top: `${midY + offsetY}%` }}
-          >
-            {dist}
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -283,7 +291,8 @@ export const constellationMode: GameMode<
   id: "constellation",
   name: "Constellation",
   description: "Five points, three seconds. Click them back where they were.",
-  rounds: ROUNDS,
+  rounds: buildRounds(),
+  regenerateRounds: buildRounds,
   previewDurationMs: 2900,
   renderIdle: () => <ConstellationIdle />,
   renderPreview: (round) => <ConstellationPreview round={round} />,

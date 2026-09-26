@@ -12,6 +12,9 @@ interface GameRunnerProps<TRound extends Round, TGuess> {
 export function GameRunner<TRound extends Round, TGuess>({
   mode,
 }: GameRunnerProps<TRound, TGuess>) {
+  const [rounds, setRounds] = useState<TRound[]>(() =>
+    mode.regenerateRounds ? mode.regenerateRounds() : mode.rounds,
+  );
   const [roundIndex, setRoundIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("idle");
   const [scores, setScores] = useState<number[]>([]);
@@ -20,7 +23,7 @@ export function GameRunner<TRound extends Round, TGuess>({
   const [isLaunching, setIsLaunching] = useState(false);
   const [confirmingRestart, setConfirmingRestart] = useState(false);
 
-  const round = mode.rounds[roundIndex];
+  const round = rounds[roundIndex];
   const previewMs = mode.previewDurationMs ?? 3000;
 
   useEffect(() => {
@@ -56,7 +59,7 @@ export function GameRunner<TRound extends Round, TGuess>({
   }
 
   function handleNext() {
-    if (roundIndex + 1 >= mode.rounds.length) {
+    if (roundIndex + 1 >= rounds.length) {
       setPhase("final");
     } else {
       setRoundIndex((prev) => prev + 1);
@@ -65,6 +68,9 @@ export function GameRunner<TRound extends Round, TGuess>({
   }
 
   function handleRestart() {
+    if (mode.regenerateRounds) {
+      setRounds(mode.regenerateRounds());
+    }
     setRoundIndex(0);
     setScores([]);
     setPhase("idle");
@@ -95,7 +101,7 @@ export function GameRunner<TRound extends Round, TGuess>({
               <button
                 onClick={handlePlay}
                 disabled={isLaunching}
-                className={`play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer flex items-center justify-between gap-4 min-w-25 ${isLaunching ? "firing" : ""}`}
+                className={`play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer flex items-center justify-between gap-4 min-w-25 select-none ${isLaunching ? "firing" : ""}`}
               >
                 Play
                 <PlayIcon size={14} color="#1B1500" />
@@ -154,9 +160,9 @@ export function GameRunner<TRound extends Round, TGuess>({
                     </button>
                     <button
                       onClick={handleNext}
-                      className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-5 py-2.5 shadow-lg hover:cursor-pointer"
+                      className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-5 py-2.5 shadow-lg hover:cursor-pointer select-none"
                     >
-                      {roundIndex + 1 >= mode.rounds.length
+                      {roundIndex + 1 >= rounds.length
                         ? "See results"
                         : "Next round"}
                     </button>
@@ -166,7 +172,7 @@ export function GameRunner<TRound extends Round, TGuess>({
             )}
 
             <div className="absolute top-3 left-3 font-mono text-sm font-light text-white drop-shadow-md pointer-events-none">
-              {roundIndex + 1}/{mode.rounds.length}
+              {roundIndex + 1}/{rounds.length}
             </div>
           </div>
         )}
@@ -185,7 +191,7 @@ export function GameRunner<TRound extends Round, TGuess>({
               <p className="text-white/80 text-sm">average score out of 100</p>
               <button
                 onClick={handleRestart}
-                className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer mt-2"
+                className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer mt-2 select-none"
               >
                 Play again
               </button>

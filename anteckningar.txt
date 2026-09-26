@@ -1,15 +1,24 @@
-lägg till distance i constellation i pixlar
+DONE:
+- lägg till distance i constellation i pixlar
 där man jämför användarens försök med og bilden
 
+- Gesture-scoring-buggen. Det här är egentligen ett rättvise-problem, 
+inte en finish, om ett perfekt resultat är matematiskt omöjligt att uppnå just nu oavsett hur bra spelaren är, 
+är poängsystemet trasigt på ett sätt som stör spelupplevelsen. 
+Värt att fixa innan ni lägger mer tid på annat i det läget.
 
-Gör snart, litet/medelstort jobb, förbättrar det som redan finns:
+- ny ikon
 
-Gesture-scoring-buggen. Det här är egentligen ett rättvise-problem, inte en finish, om ett perfekt resultat är matematiskt omöjligt att uppnå just nu oavsett hur bra spelaren är, är poängsystemet trasigt på ett sätt som stör spelupplevelsen. Värt att fixa innan ni lägger mer tid på annat i det läget.
-Mer randomisering i alla lägen. Relativt avgränsat jobb (byta hårdkodade rond-arrayer mot genererade), och gör hela spelet kännas bättre direkt varje gång någon spelar om.
-Responsivitet. Grundläggande, och helst gjort innan ni bygger mer ovanpå, annars riskerar ni att behöva göra om nya features en gång till för mobil.
+- Mer randomisering i alla lägen. Relativt avgränsat jobb (byta hårdkodade rond-arrayer mot genererade), 
+och gör hela spelet kännas bättre direkt varje gång någon spelar om.
 
-Gör när ni ändå är i "identitet"-läge:
-4. Namn + ny ikon. Fristående, påverkar inget annat tekniskt, kan göras när ni känner för det.
+To do:
+- nytt namn
+
+- Responsivitet. Grundläggande, 
+och helst gjort innan ni bygger mer ovanpå, 
+annars riskerar ni att behöva göra om 
+nya features en gång till för mobil.
 
 Fristående innehållsjobb, gör när ni har ro:
 5. Composition fas 2 (riktiga bilder/illustrationer istället för handritade scener).
