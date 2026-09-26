@@ -1,4 +1,4 @@
-import { useNavigate, useParams, Routes, Route } from "react-router-dom";
+import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { CelestialTransition } from "./CelestialTransition";
@@ -9,9 +9,15 @@ import { modes } from "../modes";
 
 export function Layout() {
   const navigate = useNavigate();
-  const params = useParams<{ modeId: string }>();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const activeModeId = params.modeId ?? null;
+  // Layout itself isn't rendered by a parameterized <Route>, so useParams()
+  // here would always be empty (it only sees params from the *nearest*
+  // enclosing Route, and the /:modeId Route is defined further down, inside
+  // this very component). Reading the path directly works regardless of
+  // where in the tree we are.
+  const activeModeId =
+    location.pathname === "/" ? null : location.pathname.slice(1);
 
   return (
     <div className="min-h-screen flex flex-col relative">

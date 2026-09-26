@@ -90,9 +90,11 @@ export function GameRunner<TRound extends Round, TGuess>({
               <div className="canvas-wrap" />
             )}
 
-            <div className="absolute top-0 left-0 p-6 text-left flex flex-col gap-2">
-              <h2 className="text-5xl font-bold text-white">{mode.name}</h2>
-              <p className="text-amber text-xl font-medium max-w-[24ch]">
+            <div className="absolute top-0 left-0 p-4 sm:p-6 text-left flex flex-col gap-2 max-w-full">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
+                {mode.name}
+              </h2>
+              <p className="text-amber text-sm sm:text-base md:text-xl font-medium max-w-[22ch]">
                 {mode.description}
               </p>
             </div>
@@ -142,7 +144,7 @@ export function GameRunner<TRound extends Round, TGuess>({
                   mode.renderResult(round, lastGuess, lastScore)}
                 <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-3 p-4 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg">
                   <div className="font-mono text-white leading-none select-none pointer-events-none">
-                    <span className="text-3xl font-bold">
+                    <span className="text-xl sm:text-3xl font-bold">
                       <CountUp target={lastScore} decimals={2} />
                     </span>{" "}
                     <span className="text-xs text-white/70 ml-1">/100</span>
@@ -150,7 +152,7 @@ export function GameRunner<TRound extends Round, TGuess>({
                   <div className="flex gap-2">
                     <button
                       onClick={handleRestartClick}
-                      className={`font-mono text-xs rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+                      className={`font-mono text-xs rounded-full px-3 py-1.5 cursor-pointer transition select-none whitespace-nowrap ${
                         confirmingRestart
                           ? "bg-rec text-white"
                           : "bg-white/10 text-white border border-white/20 hover:bg-white/20"
@@ -160,7 +162,7 @@ export function GameRunner<TRound extends Round, TGuess>({
                     </button>
                     <button
                       onClick={handleNext}
-                      className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-5 py-2.5 shadow-lg hover:cursor-pointer select-none"
+                      className="play-btn bg-amber text-[#1B1500] text-xs sm:text-sm font-semibold rounded-4xl px-4 sm:px-5 py-2.5 shadow-lg hover:cursor-pointer select-none whitespace-nowrap"
                     >
                       {roundIndex + 1 >= rounds.length
                         ? "See results"
@@ -185,10 +187,12 @@ export function GameRunner<TRound extends Round, TGuess>({
               <div className="canvas-wrap" />
             )}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 rounded-lg">
-              <div className="font-mono text-4xl font-bold text-amber">
+              <div className="font-mono text-2xl sm:text-4xl font-bold text-amber">
                 <CountUp target={average} suffix="/100" decimals={2} />
               </div>
-              <p className="text-white/80 text-sm">average score out of 100</p>
+              <p className="text-white/80 text-sm">
+                Your average score out of 100
+              </p>
               <button
                 onClick={handleRestart}
                 className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer mt-2 select-none"

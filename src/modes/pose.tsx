@@ -18,14 +18,17 @@ export interface PoseRound extends Round {
 
 export type PoseGuess = PoseAngles;
 
-const R_SHOULDER: [number, number] = [178, 150];
-const L_SHOULDER: [number, number] = [122, 150];
-const R_HIP: [number, number] = [168, 258];
-const L_HIP: [number, number] = [132, 258];
+// Shifted 30 units up from the original layout, so the feet (the lowest
+// points of the figure) always leave clear margin above the bottom control
+// bar, instead of nearly touching the very edge of the 400-tall viewBox.
+const R_SHOULDER: [number, number] = [178, 120];
+const L_SHOULDER: [number, number] = [122, 120];
+const R_HIP: [number, number] = [168, 228];
+const L_HIP: [number, number] = [132, 228];
 const UPPER_LEN = 58;
 const FORE_LEN = 52;
 const LEG_LEN = 110;
-const HEAD_C: [number, number] = [150, 108];
+const HEAD_C: [number, number] = [150, 78];
 const HEAD_R = 27;
 
 const NEUTRAL: PoseAngles = { rS: 100, rE: 0, lS: 90, lE: 0, rH: 95, lH: 85 };
@@ -214,9 +217,9 @@ function Figure({
           />
           <line
             x1={150}
-            y1={140}
+            y1={110}
             x2={150}
-            y2={262}
+            y2={232}
             stroke={stroke}
             strokeWidth={strokeWidth}
             strokeLinecap="round"

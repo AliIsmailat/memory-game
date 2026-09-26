@@ -304,14 +304,14 @@ function GestureGuessInput({
         />
       </svg>
 
-      <div
-        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <span className="text-white text-xs font-mono select-none pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-end sm:justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg pointer-events-none">
+        <span className="hidden sm:inline text-white text-xs font-mono select-none pointer-events-none">
           Draw one straight segment at a time
         </span>
-        <div className="flex gap-2">
+        <div
+          className="flex gap-2 pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <button
             onClick={onRestart}
             className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${

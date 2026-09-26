@@ -399,6 +399,11 @@ button {
       var(--color-stage-deep) 80%
     );
   }
+  @media (max-width: 639px) {
+    .canvas-wrap {
+      aspect-ratio: 4 / 5;
+    }
+  }
   .grid-dot {
     position: absolute;
     width: 3px;

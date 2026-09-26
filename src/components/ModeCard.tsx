@@ -39,7 +39,7 @@ export function ModeCard({
       onClick={onPlay}
       onKeyDown={handleKeyDown}
       aria-label={`Play ${mode.name}`}
-      className="group relative h-64 rounded-lg overflow-hidden text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber hover:-translate-y-1 hover:shadow-2xl"
+      className="group relative h-72 rounded-lg overflow-hidden text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber hover:-translate-y-1 hover:shadow-2xl"
       style={{ transition: "translate 0.6s ease, box-shadow 0.6s ease" }}
     >
       <div className="w-full h-full">

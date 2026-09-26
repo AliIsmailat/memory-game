@@ -172,14 +172,14 @@ function ConstellationGuessInput({
         </div>
       ))}
 
-      <div
-        className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-3 p-3 bg-linear-to-t from-black/70 via-black/30 to-transparent rounded-b-lg pointer-events-none">
         <span className="text-white text-xs font-mono select-none pointer-events-none">
           {guesses.length}/{POINTS_PER_ROUND} placed
         </span>
-        <div className="flex gap-2">
+        <div
+          className="flex gap-2 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={onRestart}
             className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${

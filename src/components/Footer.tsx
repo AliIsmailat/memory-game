@@ -1,8 +1,8 @@
 export function Footer() {
   return (
     <footer className="border-t border-border px-6 py-6 mt-auto">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted">
-        <span>
+      <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 text-sm text-muted text-center">
+        <span className="text-xs opacity-70">
           &copy; {new Date().getFullYear()} Memory Game. All rights reserved.
         </span>
         <div className="flex gap-4">
