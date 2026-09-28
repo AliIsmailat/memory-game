@@ -21,7 +21,7 @@ export function CelestialTransition({ theme }: { theme: "light" | "dark" }) {
   }
 
   return (
-    <div className="hidden md:block fixed -top-25 -right-15 w-140 h-177.5 overflow-hidden pointer-events-none z-40">
+    <div className="hidden xl:block fixed -top-25 -right-15 w-140 h-177.5 overflow-hidden pointer-events-none z-40">
       <div
         className="absolute"
         style={{

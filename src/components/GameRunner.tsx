@@ -152,7 +152,7 @@ export function GameRunner<TRound extends Round, TGuess>({
                   <div className="flex gap-2">
                     <button
                       onClick={handleRestartClick}
-                      className={`font-mono text-xs rounded-full px-3 py-1.5 cursor-pointer transition select-none whitespace-nowrap ${
+                      className={`font-mono text-xs rounded-full px-3 py-1.5 cursor-pointer transition select-none whitespace-nowrap min-w-23 text-center ${
                         confirmingRestart
                           ? "bg-rec text-white"
                           : "bg-white/10 text-white border border-white/20 hover:bg-white/20"
@@ -190,9 +190,7 @@ export function GameRunner<TRound extends Round, TGuess>({
               <div className="font-mono text-2xl sm:text-4xl font-bold text-amber">
                 <CountUp target={average} suffix="/100" decimals={2} />
               </div>
-              <p className="text-white/80 text-sm">
-                Your average score out of 100
-              </p>
+              <p className="text-white/80 text-sm">average score out of 100</p>
               <button
                 onClick={handleRestart}
                 className="play-btn bg-amber text-[#1B1500] text-sm font-semibold rounded-4xl px-6 py-3 shadow-lg hover:cursor-pointer mt-2 select-none"

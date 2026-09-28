@@ -182,7 +182,7 @@ function ConstellationGuessInput({
         >
           <button
             onClick={onRestart}
-            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none min-w-23 text-center ${
               confirmingRestart
                 ? "bg-rec text-white"
                 : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"

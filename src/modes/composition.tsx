@@ -228,7 +228,7 @@ function CompositionGuessInput({
         >
           <button
             onClick={onRestart}
-            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none min-w-23 text-center ${
               confirmingRestart
                 ? "bg-rec text-white"
                 : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"
@@ -281,18 +281,18 @@ function CompositionResult({
   );
 }
 
+// Distance-based scoring instead of IoU. IoU punished a small shift far too
+// hard on a large frame (a ~1% miss on both axes cost about 6 points).
+// Distances are fractions of the canvas.
+// SCORE_TOLERANCE: a miss this small counts as a perfect placement.
+// SCORE_FALLOFF: extra distance over which the score falls from 100 to 0.
+const SCORE_TOLERANCE = 0.02;
+const SCORE_FALLOFF = 0.4;
+
 function computeCompositionScore(target: Rect, guess: CompositionGuess) {
-  const s = target.s;
-  const ix1 = Math.max(target.x, guess.x);
-  const iy1 = Math.max(target.y, guess.y);
-  const ix2 = Math.min(target.x + s, guess.x + s);
-  const iy2 = Math.min(target.y + s, guess.y + s);
-  const iw = Math.max(0, ix2 - ix1);
-  const ih = Math.max(0, iy2 - iy1);
-  const inter = iw * ih;
-  const union = s * s * 2 - inter;
-  const iou = union > 0 ? inter / union : 0;
-  return iou * 100;
+  const dist = Math.hypot(guess.x - target.x, guess.y - target.y);
+  const excess = Math.max(0, dist - SCORE_TOLERANCE);
+  return Math.max(0, 100 * (1 - excess / SCORE_FALLOFF));
 }
 
 export const compositionMode: GameMode<CompositionRound, CompositionGuess> = {

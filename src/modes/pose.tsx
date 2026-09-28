@@ -2,11 +2,12 @@
 import { useRef, useState } from "react";
 import type { GameMode, Round } from "../types";
 
+// Each limb is one straight segment controlled by a single angle:
+// rS / lS = right / left arm (from the shoulder), rH / lH = right / left leg
+// (from the hip). 0 = pointing right, 90 = pointing down, -90 = pointing up.
 interface PoseAngles {
   rS: number;
-  rE: number;
   lS: number;
-  lE: number;
   rH: number;
   lH: number;
 }
@@ -18,26 +19,26 @@ export interface PoseRound extends Round {
 
 export type PoseGuess = PoseAngles;
 
-// Shifted 30 units up from the original layout, so the feet (the lowest
-// points of the figure) always leave clear margin above the bottom control
-// bar, instead of nearly touching the very edge of the 400-tall viewBox.
-const R_SHOULDER: [number, number] = [178, 120];
-const L_SHOULDER: [number, number] = [122, 120];
-const R_HIP: [number, number] = [168, 228];
-const L_HIP: [number, number] = [132, 228];
-const UPPER_LEN = 58;
-const FORE_LEN = 52;
+type Point = [number, number];
+type Segment = [Point, Point];
+
+const R_SHOULDER: Point = [178, 120];
+const L_SHOULDER: Point = [122, 120];
+const R_HIP: Point = [168, 228];
+const L_HIP: Point = [132, 228];
+const ARM_LEN = 110;
 const LEG_LEN = 110;
-const HEAD_C: [number, number] = [150, 78];
+const HEAD_C: Point = [150, 78];
 const HEAD_R = 27;
+const TORSO: Segment = [
+  [150, 110],
+  [150, 232],
+];
 
-const NEUTRAL: PoseAngles = { rS: 100, rE: 0, lS: 90, lE: 0, rH: 95, lH: 85 };
+// Arms hang slightly outward and the legs start close together.
+const NEUTRAL: PoseAngles = { rS: 85, lS: 95, rH: 95, lH: 85 };
 
-function polar(
-  base: [number, number],
-  len: number,
-  angDeg: number,
-): [number, number] {
+function polar(base: Point, len: number, angDeg: number): Point {
   const r = (angDeg * Math.PI) / 180;
   return [base[0] + len * Math.cos(r), base[1] + len * Math.sin(r)];
 }
@@ -48,33 +49,33 @@ function angDiff(a: number, b: number) {
   return d;
 }
 
-// -- Procedural pose generation ----------------------------------------------
-// Each joint angle is drawn from a range that keeps the figure looking like a
-// plausible pose (shoulders/hips can swing wide, elbows don't hyperextend
-// past a natural bend). Poses are re-rolled if they end up too close to the
-// neutral resting stance, so every round is an actual distinct pose to
-// memorize rather than a barely-changed one.
+function poseJoints(p: PoseAngles) {
+  return {
+    rHand: polar(R_SHOULDER, ARM_LEN, p.rS),
+    lHand: polar(L_SHOULDER, ARM_LEN, p.lS),
+    rFoot: polar(R_HIP, LEG_LEN, p.rH),
+    lFoot: polar(L_HIP, LEG_LEN, p.lH),
+  };
+}
 
-const SHOULDER_RANGE: [number, number] = [-170, 170];
-const ELBOW_BEND_RANGE: [number, number] = [-120, 120];
+// -- Procedural pose generation ----------------------------------------------
+// A pose is only used if no two body parts overlap: every pair of parts
+// (torso, both arms, both legs) keeps a minimum distance, no limb touches the
+// head, and the draggable handles stay far enough apart to be clickable.
+// Poses are also re-rolled if they end up too close to the neutral stance,
+// so every round is a distinct pose rather than a barely-changed one.
+
+const ARM_RANGE: [number, number] = [-180, 180];
 const HIP_RANGE: [number, number] = [-60, 150];
 const MIN_AVG_DEVIATION_FROM_NEUTRAL = 30;
-// Minimum distance (in the same SVG units as the figure, 300x400) between
-// every pair of draggable joint handles, so two handles never end up so
-// close together that clicking one reliably hits the other instead.
+// Distances are in the same SVG units as the figure (300x400). Strokes are
+// about 9 wide, so a 16 centerline gap leaves a visible gap between parts.
 const MIN_HANDLE_DIST = 34;
-// Extra clearance (beyond the head's own radius) that every arm segment
-// must keep from the head's center, so an arm never visually slices through
-// the head circle (which also hides that joint's true angle during preview,
-// making it impossible to guess correctly).
-const HEAD_CLEARANCE = 10;
-const MAX_ATTEMPTS = 200;
+const MIN_PART_GAP = 16;
+const HEAD_GAP = 16;
+const MAX_ATTEMPTS = 1000;
 
-function distPointToSegment(
-  pt: [number, number],
-  a: [number, number],
-  b: [number, number],
-): number {
+function distPointToSegment(pt: Point, a: Point, b: Point): number {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const lengthSq = dx * dx + dy * dy;
@@ -83,21 +84,68 @@ function distPointToSegment(
     0,
     Math.min(1, ((pt[0] - a[0]) * dx + (pt[1] - a[1]) * dy) / lengthSq),
   );
-  const cx = a[0] + t * dx;
-  const cy = a[1] + t * dy;
-  return Math.hypot(pt[0] - cx, pt[1] - cy);
+  return Math.hypot(pt[0] - (a[0] + t * dx), pt[1] - (a[1] + t * dy));
+}
+
+function segmentsIntersect(a1: Point, a2: Point, b1: Point, b2: Point) {
+  const ccw = (a: Point, b: Point, c: Point) =>
+    (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0]);
+  return (
+    ccw(a1, b1, b2) !== ccw(a2, b1, b2) && ccw(a1, a2, b1) !== ccw(a1, a2, b2)
+  );
+}
+
+function segmentDistance(a: Segment, b: Segment): number {
+  if (segmentsIntersect(a[0], a[1], b[0], b[1])) return 0;
+  return Math.min(
+    distPointToSegment(a[0], b[0], b[1]),
+    distPointToSegment(a[1], b[0], b[1]),
+    distPointToSegment(b[0], a[0], a[1]),
+    distPointToSegment(b[1], a[0], a[1]),
+  );
+}
+
+function poseParts(pose: PoseAngles) {
+  const j = poseJoints(pose);
+  return {
+    torso: TORSO,
+    rArm: [R_SHOULDER, j.rHand] as Segment,
+    lArm: [L_SHOULDER, j.lHand] as Segment,
+    rLeg: [R_HIP, j.rFoot] as Segment,
+    lLeg: [L_HIP, j.lFoot] as Segment,
+  };
+}
+
+function handlesFarEnough(pose: PoseAngles): boolean {
+  const j = poseJoints(pose);
+  const pts = [j.rHand, j.lHand, j.rFoot, j.lFoot];
+  for (let i = 0; i < pts.length; i++) {
+    for (let k = i + 1; k < pts.length; k++) {
+      if (
+        Math.hypot(pts[i][0] - pts[k][0], pts[i][1] - pts[k][1]) <
+        MIN_HANDLE_DIST
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function partsDoNotOverlap(pose: PoseAngles): boolean {
+  const parts = Object.values(poseParts(pose));
+  for (let i = 0; i < parts.length; i++) {
+    for (let k = i + 1; k < parts.length; k++) {
+      if (segmentDistance(parts[i], parts[k]) < MIN_PART_GAP) return false;
+    }
+  }
+  return true;
 }
 
 function clearsHead(pose: PoseAngles): boolean {
-  const j = poseJoints(pose);
-  const armSegments: [[number, number], [number, number]][] = [
-    [R_SHOULDER, j.rElbow],
-    [j.rElbow, j.rHand],
-    [L_SHOULDER, j.lElbow],
-    [j.lElbow, j.lHand],
-  ];
-  return armSegments.every(
-    ([a, b]) => distPointToSegment(HEAD_C, a, b) >= HEAD_R + HEAD_CLEARANCE,
+  const { rArm, lArm, rLeg, lLeg } = poseParts(pose);
+  return [rArm, lArm, rLeg, lLeg].every(
+    ([a, b]) => distPointToSegment(HEAD_C, a, b) >= HEAD_R + HEAD_GAP,
   );
 }
 
@@ -105,44 +153,26 @@ function randInRange([min, max]: [number, number]) {
   return min + Math.random() * (max - min);
 }
 
-function handleDistanceOk(pose: PoseAngles): boolean {
-  const j = poseJoints(pose);
-  const handlePoints = [j.rElbow, j.rHand, j.lElbow, j.lHand, j.rFoot, j.lFoot];
-  for (let i = 0; i < handlePoints.length; i++) {
-    for (let k = i + 1; k < handlePoints.length; k++) {
-      const d = Math.hypot(
-        handlePoints[i][0] - handlePoints[k][0],
-        handlePoints[i][1] - handlePoints[k][1],
-      );
-      if (d < MIN_HANDLE_DIST) return false;
-    }
-  }
-  return true;
-}
-
 function tryGeneratePose(): PoseAngles | null {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const pose: PoseAngles = {
-      rS: randInRange(SHOULDER_RANGE),
-      rE: randInRange(ELBOW_BEND_RANGE),
-      lS: randInRange(SHOULDER_RANGE),
-      lE: randInRange(ELBOW_BEND_RANGE),
+      rS: randInRange(ARM_RANGE),
+      lS: randInRange(ARM_RANGE),
       rH: randInRange(HIP_RANGE),
       lH: randInRange(HIP_RANGE),
     };
 
     const avgDeviation =
       (angDiff(pose.rS, NEUTRAL.rS) +
-        angDiff(pose.rE, NEUTRAL.rE) +
         angDiff(pose.lS, NEUTRAL.lS) +
-        angDiff(pose.lE, NEUTRAL.lE) +
         angDiff(pose.rH, NEUTRAL.rH) +
         angDiff(pose.lH, NEUTRAL.lH)) /
-      6;
+      4;
 
     if (
       avgDeviation >= MIN_AVG_DEVIATION_FROM_NEUTRAL &&
-      handleDistanceOk(pose) &&
+      handlesFarEnough(pose) &&
+      partsDoNotOverlap(pose) &&
       clearsHead(pose)
     ) {
       return pose;
@@ -152,10 +182,9 @@ function tryGeneratePose(): PoseAngles | null {
 }
 
 const FALLBACK_POSES: PoseAngles[] = [
-  { rS: -90, rE: 0, lS: 100, lE: 0, rH: 95, lH: 85 },
-  { rS: -10, rE: -100, lS: 100, lE: 0, rH: 95, lH: 85 },
-  { rS: 0, rE: 0, lS: 180, lE: 0, rH: -30, lH: 95 },
-  { rS: 40, rE: 70, lS: 100, lE: 0, rH: 95, lH: 85 },
+  { rS: -60, lS: -120, rH: 70, lH: 110 },
+  { rS: -20, lS: 110, rH: 60, lH: 100 },
+  { rS: 0, lS: 180, rH: 75, lH: 105 },
 ];
 
 function randomPose(): PoseAngles {
@@ -177,16 +206,6 @@ function buildRounds(): PoseRound[] {
   }));
 }
 
-function poseJoints(p: PoseAngles) {
-  const rElbow = polar(R_SHOULDER, UPPER_LEN, p.rS);
-  const rHand = polar(rElbow, FORE_LEN, p.rS + p.rE);
-  const lElbow = polar(L_SHOULDER, UPPER_LEN, p.lS);
-  const lHand = polar(lElbow, FORE_LEN, p.lS + p.lE);
-  const rFoot = polar(R_HIP, LEG_LEN, p.rH);
-  const lFoot = polar(L_HIP, LEG_LEN, p.lH);
-  return { rElbow, rHand, lElbow, lHand, rFoot, lFoot };
-}
-
 function Figure({
   pose,
   stroke,
@@ -202,6 +221,12 @@ function Figure({
 }) {
   const j = poseJoints(pose);
   const dash = dashed ? "6 6" : undefined;
+  const limbs: Segment[] = [
+    [R_SHOULDER, j.rHand],
+    [L_SHOULDER, j.lHand],
+    [R_HIP, j.rFoot],
+    [L_HIP, j.lFoot],
+  ];
   return (
     <>
       {showBody && (
@@ -216,10 +241,10 @@ function Figure({
             strokeDasharray={dash}
           />
           <line
-            x1={150}
-            y1={110}
-            x2={150}
-            y2={232}
+            x1={TORSO[0][0]}
+            y1={TORSO[0][1]}
+            x2={TORSO[1][0]}
+            y2={TORSO[1][1]}
             stroke={stroke}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
@@ -227,66 +252,19 @@ function Figure({
           />
         </>
       )}
-      <line
-        x1={R_SHOULDER[0]}
-        y1={R_SHOULDER[1]}
-        x2={j.rElbow[0]}
-        y2={j.rElbow[1]}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-      />
-      <line
-        x1={j.rElbow[0]}
-        y1={j.rElbow[1]}
-        x2={j.rHand[0]}
-        y2={j.rHand[1]}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-      />
-      <line
-        x1={L_SHOULDER[0]}
-        y1={L_SHOULDER[1]}
-        x2={j.lElbow[0]}
-        y2={j.lElbow[1]}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-      />
-      <line
-        x1={j.lElbow[0]}
-        y1={j.lElbow[1]}
-        x2={j.lHand[0]}
-        y2={j.lHand[1]}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-      />
-      <line
-        x1={R_HIP[0]}
-        y1={R_HIP[1]}
-        x2={j.rFoot[0]}
-        y2={j.rFoot[1]}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-      />
-      <line
-        x1={L_HIP[0]}
-        y1={L_HIP[1]}
-        x2={j.lFoot[0]}
-        y2={j.lFoot[1]}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={dash}
-      />
+      {limbs.map(([a, b], i) => (
+        <line
+          key={i}
+          x1={a[0]}
+          y1={a[1]}
+          x2={b[0]}
+          y2={b[1]}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={dash}
+        />
+      ))}
     </>
   );
 }
@@ -316,7 +294,7 @@ function PosePreview({ round }: { round: PoseRound }) {
   );
 }
 
-type HandleId = "rElbow" | "rHand" | "lElbow" | "lHand" | "rFoot" | "lFoot";
+type HandleId = "rHand" | "lHand" | "rFoot" | "lFoot";
 
 function PoseGuessInput({
   onSubmit,
@@ -332,12 +310,16 @@ function PoseGuessInput({
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragId = useRef<HandleId | null>(null);
 
-  function toSvgPoint(clientX: number, clientY: number): [number, number] {
+  function toSvgPoint(clientX: number, clientY: number): Point {
     const rect = wrapRef.current!.getBoundingClientRect();
     return [
       ((clientX - rect.left) / rect.width) * 300,
       ((clientY - rect.top) / rect.height) * 400,
     ];
+  }
+
+  function angleFrom(origin: Point, x: number, y: number) {
+    return (Math.atan2(y - origin[1], x - origin[0]) * 180) / Math.PI;
   }
 
   function handlePointerDown(id: HandleId) {
@@ -353,25 +335,10 @@ function PoseGuessInput({
     const [x, y] = toSvgPoint(e.clientX, e.clientY);
     setGuess((prev) => {
       const next = { ...prev };
-      if (id === "rElbow") {
-        next.rS =
-          (Math.atan2(y - R_SHOULDER[1], x - R_SHOULDER[0]) * 180) / Math.PI;
-      } else if (id === "rHand") {
-        const elbow = polar(R_SHOULDER, UPPER_LEN, prev.rS);
-        const abs = (Math.atan2(y - elbow[1], x - elbow[0]) * 180) / Math.PI;
-        next.rE = abs - prev.rS;
-      } else if (id === "lElbow") {
-        next.lS =
-          (Math.atan2(y - L_SHOULDER[1], x - L_SHOULDER[0]) * 180) / Math.PI;
-      } else if (id === "lHand") {
-        const elbow = polar(L_SHOULDER, UPPER_LEN, prev.lS);
-        const abs = (Math.atan2(y - elbow[1], x - elbow[0]) * 180) / Math.PI;
-        next.lE = abs - prev.lS;
-      } else if (id === "rFoot") {
-        next.rH = (Math.atan2(y - R_HIP[1], x - R_HIP[0]) * 180) / Math.PI;
-      } else if (id === "lFoot") {
-        next.lH = (Math.atan2(y - L_HIP[1], x - L_HIP[0]) * 180) / Math.PI;
-      }
+      if (id === "rHand") next.rS = angleFrom(R_SHOULDER, x, y);
+      else if (id === "lHand") next.lS = angleFrom(L_SHOULDER, x, y);
+      else if (id === "rFoot") next.rH = angleFrom(R_HIP, x, y);
+      else if (id === "lFoot") next.lH = angleFrom(L_HIP, x, y);
       return next;
     });
   }
@@ -381,10 +348,8 @@ function PoseGuessInput({
   }
 
   const j = poseJoints(guess);
-  const handles: { id: HandleId; p: [number, number] }[] = [
-    { id: "rElbow", p: j.rElbow },
+  const handles: { id: HandleId; p: Point }[] = [
     { id: "rHand", p: j.rHand },
-    { id: "lElbow", p: j.lElbow },
     { id: "lHand", p: j.lHand },
     { id: "rFoot", p: j.rFoot },
     { id: "lFoot", p: j.lFoot },
@@ -423,7 +388,7 @@ function PoseGuessInput({
         >
           <button
             onClick={onRestart}
-            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none ${
+            className={`text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition select-none min-w-23 text-center ${
               confirmingRestart
                 ? "bg-rec text-white"
                 : "bg-white/10 text-white border border-white/20 hover:bg-white/20 active:scale-95"
@@ -432,7 +397,7 @@ function PoseGuessInput({
             {confirmingRestart ? "You sure?" : "Restart"}
           </button>
           <button
-            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:brightness-110 active:scale-95"
+            className="bg-amber text-[#1B1500] text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer transition hover:brightness-110 active:scale-95 select-none"
             onClick={() => onSubmit(guess)}
           >
             Lock in
@@ -459,17 +424,22 @@ function PoseResult({ round, guess }: { round: PoseRound; guess: PoseGuess }) {
   );
 }
 
+// An angle error below POSE_TOLERANCE_DEG counts as zero for that limb (15
+// degrees is roughly a 29 unit miss at the hand or foot). Beyond that, the
+// average error over the four limbs lowers the score linearly, reaching 0 at
+// POSE_FALLOFF_DEG of average excess error.
+const POSE_TOLERANCE_DEG = 15;
+const POSE_FALLOFF_DEG = 70;
+
 function computePoseScore(target: PoseAngles, guess: PoseAngles) {
-  const diffs = [
+  const excess = [
     angDiff(guess.rS, target.rS),
-    angDiff(guess.rE, target.rE),
     angDiff(guess.lS, target.lS),
-    angDiff(guess.lE, target.lE),
     angDiff(guess.rH, target.rH),
     angDiff(guess.lH, target.lH),
-  ];
-  const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-  return Math.max(0, 100 * (1 - avg / 75));
+  ].map((d) => Math.max(0, d - POSE_TOLERANCE_DEG));
+  const avg = excess.reduce((a, b) => a + b, 0) / excess.length;
+  return Math.max(0, 100 * (1 - avg / POSE_FALLOFF_DEG));
 }
 
 export const poseMode: GameMode<PoseRound, PoseGuess> = {
